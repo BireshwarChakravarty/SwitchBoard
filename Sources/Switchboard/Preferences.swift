@@ -49,7 +49,8 @@ enum Preferences {
     }
 
     static var brightnessKeysEnabled: Bool {
-        get { defaults.bool(forKey: brightnessKeysKey) }
+        // On unless turned off: on a Mac mini the keys do nothing otherwise.
+        get { defaults.object(forKey: brightnessKeysKey) as? Bool ?? true }
         set { defaults.set(newValue, forKey: brightnessKeysKey) }
     }
 

@@ -53,7 +53,9 @@ final class DisplayController: ObservableObject {
     private let ddcQueue = DispatchQueue(label: "Switchboard.ddc")
     private let dimmer = SoftwareDimmer()
     private let keys = BrightnessKeys()
+    private let hud = BrightnessHUD()
     private var permissionTimer: Timer?
+    private var didPromptForAccessibility = false
 
     private var intents: [CGDirectDisplayID: Bool] = [:]
     /// Last identity seen for every external display, kept after it goes offline.
@@ -86,7 +88,7 @@ final class DisplayController: ObservableObject {
         // bring it back so it can never get stuck off.
         reconnectAll()
         keys.canHandle = { [weak self] id in self?.canAdjustBrightness(on: id) ?? false }
-        keys.onPress = { [weak self] up, id in self?.adjustBrightness(up: up, on: id) }
+        keys.onPress = { [weak self] up, fine, id in self?.adjustBrightness(up: up, fine: fine, on: id) }
         refresh()
         CGDisplayRegisterReconfigurationCallback({ _, _, userInfo in
             guard let userInfo else { return }
@@ -344,10 +346,17 @@ final class DisplayController: ObservableObject {
     }
 
     /// Start or stop the key tap to match the setting. Until Accessibility is
-    /// granted the tap can't start, so keep retrying every couple of seconds.
+    /// granted the tap can't start: ask once per launch, then keep retrying
+    /// quietly every couple of seconds so the keys work as soon as it's granted.
     private func syncBrightnessKeys() {
         if brightnessKeysEnabled {
-            if !keys.isRunning { keys.start() }
+            if !keys.isRunning {
+                if !BrightnessKeys.hasPermission && !didPromptForAccessibility {
+                    didPromptForAccessibility = true
+                    BrightnessKeys.requestPermission()
+                }
+                keys.start()
+            }
         } else {
             keys.stop()
         }
@@ -370,34 +379,57 @@ final class DisplayController: ObservableObject {
             return mirrored == 0 ? id : mirrored
         }
         let set = primary(id)
-        return displays.filter { $0.isOn && primary($0.id) == set }
+        return displays.filter { primary($0.id) == set }
     }
 
-    /// Whether brightness keys aimed at this screen are ours to handle: an
-    /// external screen (or its mirror set) with DDC brightness or dimming.
+    private func isAdjustable(_ display: ManagedDisplay) -> Bool {
+        display.isOn && !display.isBuiltIn && (display.brightness != nil || display.dimLevel != nil)
+    }
+
+    /// The screens a brightness key aimed at `id` adjusts: that screen and its
+    /// mirrors, or, if none of them can be adjusted, every adjustable screen,
+    /// so a key press never does nothing.
+    private func brightnessTargets(for id: CGDirectDisplayID) -> [ManagedDisplay] {
+        let pointed = mirrorSet(of: id).filter { isAdjustable($0) }
+        return pointed.isEmpty ? displays.filter { isAdjustable($0) } : pointed
+    }
+
     private func canAdjustBrightness(on id: CGDirectDisplayID) -> Bool {
-        mirrorSet(of: id).contains { !$0.isBuiltIn && ($0.brightness != nil || $0.dimLevel != nil) }
+        !brightnessTargets(for: id).isEmpty
     }
 
-    /// One brightness-key press on the screen under the pointer. Mirrored
-    /// screens show the same picture, so all screens in its mirror set change
-    /// together.
-    private func adjustBrightness(up: Bool, on id: CGDirectDisplayID) {
-        for display in mirrorSet(of: id) where !display.isBuiltIn {
-            adjustBrightness(up: up, of: display)
+    /// One brightness-key press (or auto-repeat).
+    private func adjustBrightness(up: Bool, fine: Bool, on id: CGDirectDisplayID) {
+        let targets = brightnessTargets(for: id)
+        var shown: Double?
+        for display in targets {
+            let level = adjustBrightness(up: up, fine: fine, of: display)
+            if shown == nil { shown = level }
+        }
+        if let shown, let first = targets.first {
+            hud.show(level: shown, on: first.id)
         }
     }
 
-    private func adjustBrightness(up: Bool, of display: ManagedDisplay) {
-        let id = display.id
+    /// Step one screen's brightness on a 16-step scale (64 with ⇧⌥), like
+    /// the system does, and return the new level (0...1).
+    private func adjustBrightness(up: Bool, fine: Bool, of display: ManagedDisplay) -> Double? {
+        let steps = fine ? 64.0 : 16.0
+        func stepped(_ level: Double) -> Double {
+            let next = ((level * steps).rounded() + (up ? 1 : -1)) / steps
+            return min(max(next, 0), 1)
+        }
         if let brightness = display.brightness {
-            let step = max(1, Int(brightness.max) / 16)
-            let current = Int(brightness.current)
-            let target = up ? min(Int(brightness.max), current + step) : max(0, current - step)
-            setVCP(VCP.brightness, to: UInt16(target), for: id)
-        } else if let level = display.dimLevel {
-            setDimLevel(level + (up ? 1.0 : -1.0) / 16, for: id)
+            let level = stepped(Double(brightness.current) / Double(brightness.max))
+            setVCP(VCP.brightness, to: UInt16((level * Double(brightness.max)).rounded()), for: display.id)
+            return level
         }
+        if let current = display.dimLevel {
+            let level = stepped(current)
+            setDimLevel(level, for: display.id)
+            return level
+        }
+        return nil
     }
 
     // MARK: Lock / sleep automation
@@ -468,7 +500,7 @@ final class DisplayController: ObservableObject {
         problems = [:]
         ddcValues = [:]
         autoSwitchedOff = []
-        brightnessKeysEnabled = false
+        brightnessKeysEnabled = Preferences.brightnessKeysEnabled
         if LoginItem.isAvailable { LoginItem.setEnabled(true) }
         refresh()
     }

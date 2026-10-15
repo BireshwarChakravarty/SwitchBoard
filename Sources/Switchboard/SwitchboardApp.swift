@@ -80,7 +80,7 @@ struct MenuContent: View {
             OptionRow(
                 icon: "keyboard",
                 title: "Brightness Keys",
-                detail: "Adjust the screen under the pointer",
+                detail: "Adjust your monitors · ⇧⌥ for finer steps",
                 isOn: Binding(
                     get: { controller.brightnessKeysEnabled },
                     set: { controller.setBrightnessKeysEnabled($0) }

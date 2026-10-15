@@ -5,7 +5,7 @@
 <h1 align="center">Switchboard</h1>
 
 <p align="center">
-  A menu-bar control panel for the external monitors on an Apple Silicon Mac.
+  A menu-bar control panel for the monitors on a Mac mini.
 </p>
 
 ---
@@ -19,8 +19,10 @@ Switchboard gives every external screen a **switch** and a set of **faders**:
 - **Brightness, contrast and volume** over DDC/CI, with live percentage
   readouts.
 - **Software dimming** (down to black) for monitors without DDC/CI.
-- **Brightness keys** adjust the screen under the pointer, together with any
-  screen mirroring it.
+- **Your keyboard's brightness keys work.** On a Mac mini macOS says "not
+  supported"; with Switchboard they adjust the monitor under the pointer
+  (and any screen mirroring it), with an on-screen brightness indicator.
+  Hold ⇧⌥ for finer steps.
 - **Off while locked or asleep:** per screen, switch it off when the Mac locks
   or sleeps and back on when you return.
 - **Mirroring-aware:** shows "Mirrored to …" / "Mirror of …" like the system
@@ -35,7 +37,9 @@ dependencies and no network access.
 
 ## Requirements
 
-- An **Apple Silicon** Mac (DDC uses the Apple Silicon display interface).
+- An **Apple Silicon Mac mini**. Switchboard is built for Macs without a
+  screen of their own (it also runs on a Mac Studio). It isn't meant for
+  MacBooks or iMacs.
 - **macOS 26 (Tahoe)** or later.
 - The Swift toolchain: the free **Command Line Tools** are enough
   (`xcode-select --install`). Full Xcode isn't needed.
@@ -73,7 +77,7 @@ Click the monitor-and-switch icon in the menu bar.
 |---|---|
 | Switch next to a screen | Switch it off (standby or disconnect) and on again |
 | Sliders under a screen | Brightness, contrast, volume (DDC/CI) or Dim (software) |
-| **Brightness Keys** | Brightness keys adjust the screen under the pointer |
+| **Brightness Keys** | Keyboard brightness keys adjust your monitors (on by default) |
 | **Start at Login** | Launch Switchboard when you log in |
 | ↺ (counter-clockwise arrow) | Reset to Defaults (asks first) |
 | ⟳ (clockwise arrow) | Re-scan screens |
@@ -89,10 +93,26 @@ Click the monitor-and-switch icon in the menu bar.
 
 ### Brightness keys
 
-Turning on **Brightness Keys** asks for **Accessibility** permission, which
-macOS requires for any app that reacts to these keys. If you rebuild the app,
-macOS treats it as a new app. `make-app.sh` clears the old permission, so
-just grant it again when asked.
+Brightness keys are on from the first launch. macOS only lets an app react
+to them with **Accessibility** permission, so Switchboard asks for it on
+launch:
+
+1. In the prompt, click **Open System Settings**.
+2. Turn on **Switchboard** under Privacy & Security → Accessibility.
+
+The keys start working within a couple of seconds, with no relaunch needed.
+Until then the Brightness Keys row shows **Needs Accessibility access**, with
+a button straight to that setting.
+
+- Each press moves brightness one of 16 steps, like a built-in screen; hold
+  **⇧⌥** for 64 finer steps. A brightness indicator appears at the top right.
+- Keys adjust the monitor under the pointer, together with any screen
+  mirroring it. If that screen can't be adjusted, they adjust your other
+  monitors.
+- DDC/CI monitors change their real backlight; others are dimmed in software.
+
+If you rebuild the app, macOS treats it as a new app. `make-app.sh` clears
+the old permission, so grant it again when asked.
 
 ## How it works
 
@@ -103,7 +123,7 @@ just grant it again when asked.
 | DDC transport | `IOAVService` I²C on Apple Silicon (private IOKit symbols), matched to each screen through the IORegistry and its EDID |
 | Disconnect | `CGSConfigureDisplayEnabled` (undocumented), applied for the login session only |
 | Dimming | Display gamma tables (`CGSetDisplayTransferByTable`) |
-| Brightness keys | A `CGEventTap` on the system-defined brightness key events |
+| Brightness keys | A `CGEventTap` on the system-defined brightness key events; indicator is a Liquid Glass `NSPanel` |
 | Start at Login | `SMAppService` |
 
 The DDC approach is the one used by the open-source
@@ -121,6 +141,11 @@ reproduce a problem:
 log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"'
 ```
 
+- **Brightness keys do nothing**: check Switchboard is on under Privacy &
+  Security → Accessibility (after a rebuild, turn it off and on). In the
+  log, `Brightness keys: listening` means the keys are being caught, and each
+  press logs `Brightness key up/down`. If presses never appear, your keyboard
+  doesn't send standard brightness keys.
 - **"Not responding to DDC/CI"**: the monitor didn't answer. Enable DDC/CI in
   its menu, try another port or cable, or use **Switch Off By →
   Disconnecting**.
@@ -146,6 +171,7 @@ Sources/Switchboard/
 ├── SoftwareDisconnect.swift  Software disconnect / reconnect
 ├── SoftwareDimmer.swift      Gamma-table dimming
 ├── BrightnessKeys.swift      Brightness-key event tap
+├── BrightnessHUD.swift       On-screen brightness indicator
 ├── Displays.swift            CoreGraphics display lists
 ├── Preferences.swift         Per-screen and app settings
 ├── Reset.swift               Restore every screen (`--reset`, Reset to Defaults)

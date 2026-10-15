@@ -1,20 +1,20 @@
 import AppKit
 import ApplicationServices
 
-/// Makes the keyboard's brightness keys adjust the external screen under the
-/// pointer.
+/// Makes the keyboard's brightness keys adjust the monitors.
 ///
-/// macOS applies brightness keys only to built-in and Apple displays, so we
-/// intercept them with an event tap. Keys aimed at a screen we don't control
-/// (such as a MacBook's built-in display) pass through to macOS untouched.
-/// Taps that swallow events need Accessibility permission (System Settings →
-/// Privacy & Security → Accessibility).
+/// A Mac mini has no screen of its own, so macOS ignores brightness keys
+/// ("not supported"). We intercept them with an event tap, which needs
+/// Accessibility permission (System Settings → Privacy & Security →
+/// Accessibility).
 @MainActor
 final class BrightnessKeys {
-    /// Whether we handle keys aimed at this screen; if not, macOS gets them.
+    /// Whether there's a screen to adjust for a key aimed at this one; if
+    /// not, the key passes through to macOS.
     var canHandle: (@MainActor (_ displayID: CGDirectDisplayID) -> Bool)?
-    /// Called on each key press: `up` is true for brightness up.
-    var onPress: (@MainActor (_ up: Bool, _ displayID: CGDirectDisplayID) -> Void)?
+    /// Called on each key press (and auto-repeat). `up` is brightness up;
+    /// `fine` is true with ⇧⌥ held, for quarter steps.
+    var onPress: (@MainActor (_ up: Bool, _ fine: Bool, _ displayID: CGDirectDisplayID) -> Void)?
 
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
@@ -49,13 +49,17 @@ final class BrightnessKeys {
                 return swallow ? nil : Unmanaged.passUnretained(event)
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
-        ) else { return false }
+        ) else {
+            Log.app.notice("Brightness keys: event tap refused (Accessibility permission missing)")
+            return false
+        }
 
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
         self.tap = tap
         self.source = source
+        Log.app.info("Brightness keys: listening")
         return true
     }
 
@@ -66,11 +70,13 @@ final class BrightnessKeys {
         CFMachPortInvalidate(tap)
         self.tap = nil
         self.source = nil
+        Log.app.info("Brightness keys: stopped")
     }
 
     /// Returns true to swallow the event.
     private func handle(type: CGEventType, event: CGEvent) -> Bool {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            // macOS disables a tap that was too slow; turn it straight back on.
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return false
         }
@@ -88,12 +94,18 @@ final class BrightnessKeys {
         case 3: up = false  // NX_KEYTYPE_BRIGHTNESS_DOWN
         default: return false // volume, play/pause etc.: leave to macOS
         }
-        guard let displayID = Self.displayUnderPointer(),
-              canHandle?(displayID) == true else { return false }
-        if isKeyDown {
-            onPress?(up, displayID)
+
+        let displayID = Self.displayUnderPointer() ?? CGMainDisplayID()
+        guard canHandle?(displayID) == true else {
+            Log.app.notice("Brightness key: no adjustable screen yet, passing to macOS")
+            return false
         }
-        return true // swallow key-down and key-up alike
+        if isKeyDown {
+            let fine = nsEvent.modifierFlags.contains([.shift, .option])
+            Log.app.debug("Brightness key \(up ? "up" : "down", privacy: .public)\(fine ? " (fine)" : "", privacy: .public) on display \(displayID)")
+            onPress?(up, fine, displayID)
+        }
+        return true // swallow key-down and key-up alike, so macOS shows no "not supported" HUD
     }
 
     private static func displayUnderPointer() -> CGDirectDisplayID? {
