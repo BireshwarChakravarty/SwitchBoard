@@ -3,7 +3,8 @@ import CoreGraphics
 
 /// Switches a display off "in software": macOS stops using it as if the cable
 /// had been pulled, so windows move to the remaining screens and the monitor
-/// sees no signal (most then go to sleep on their own).
+/// sees no signal (most then go to sleep on their own). The other screens
+/// stay on: the default fade-to-black of display configurations is disabled.
 ///
 /// This is the fallback for monitors that don't answer DDC/CI. It uses the
 /// private `CGSConfigureDisplayEnabled`, looked up at runtime so the app still
@@ -36,6 +37,11 @@ enum SoftwareDisconnect {
 
         var config: CGDisplayConfigRef?
         guard CGBeginDisplayConfiguration(&config) == .success, let config else { return false }
+
+        // By default a display configuration fades *every* screen to black
+        // and back. Turn that off, so the other screens stay on while this
+        // one is disconnected or reconnected.
+        CGConfigureDisplayFadeEffect(config, 0, 0, 0, 0, 0)
 
         let result = configure(config, displayID, enabled)
         guard result == 0 else {
