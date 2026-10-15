@@ -91,6 +91,8 @@ final class DisplayController: ObservableObject {
     /// Display modes behind each screen's resolution slider, the position
     /// being dragged to, and the volume to restore when unmuting.
     private var displayModes: [CGDirectDisplayID: [CGDisplayMode]] = [:]
+    private var resolutionCache: [CGDirectDisplayID: (resolutions: [Resolution], current: Int)] = [:]
+    private var refreshTask: Task<Void, Never>?
     private var resolutionPreview: [CGDirectDisplayID: Int] = [:]
     private var mutedVolume: [CGDirectDisplayID: UInt16] = [:]
 
@@ -107,17 +109,40 @@ final class DisplayController: ObservableObject {
         keys.onPress = { [weak self] key, fine, id in self?.handle(key, fine: fine, on: id) }
         keys.onSeen = { [weak self] key, code in self?.keySeen(key, code: code) }
         refresh()
-        CGDisplayRegisterReconfigurationCallback({ _, _, userInfo in
-            guard let userInfo else { return }
+        CGDisplayRegisterReconfigurationCallback({ _, flags, userInfo in
+            // Ignore the "about to reconfigure" call; react once it's done.
+            guard let userInfo, !flags.contains(.beginConfigurationFlag) else { return }
             let controller = Unmanaged<DisplayController>
                 .fromOpaque(userInfo).takeUnretainedValue()
-            Task { @MainActor in controller.refresh() }
+            Task { @MainActor in controller.scheduleRefresh() }
         }, Unmanaged.passUnretained(self).toOpaque())
         observeSystemEvents()
         applyAppearanceBrightness()
     }
 
+    /// Re-read everything: the screen list, resolutions, gamma, DDC values.
     func refresh() {
+        rebuild(heavy: true)
+    }
+
+    /// After macOS reconfigures displays (a screen switched on or off, a
+    /// resolution changed), it keeps adjusting them for a moment and fires
+    /// several callbacks. Querying display modes, rewriting gamma tables or
+    /// talking DDC during that can prolong the blank on other screens, so wait
+    /// until it has settled and refresh once.
+    func scheduleRefresh() {
+        refreshTask?.cancel()
+        refreshTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.refresh()
+        }
+    }
+
+    /// Rebuild the screen list. `heavy: false` only updates rows from what's
+    /// already known (no display-mode queries, gamma writes or DDC), for use
+    /// right after a change while macOS is still reconfiguring.
+    private func rebuild(heavy: Bool) {
         let ids = Displays.online()
         let mainID = CGMainDisplayID()
 
@@ -154,16 +179,22 @@ final class DisplayController: ObservableObject {
         }
 
         // Resolutions, for screens that aren't mirrors of another.
+        if heavy {
+            for id in ids {
+                guard CGDisplayMirrorsDisplay(id) == 0, let available = DisplayModes.available(for: id) else {
+                    displayModes[id] = nil
+                    resolutionCache[id] = nil
+                    continue
+                }
+                displayModes[id] = available.modes
+                resolutionCache[id] = (available.modes.map(DisplayModes.resolution(of:)), available.current)
+            }
+        }
         for index in list.indices {
             let id = list[index].id
-            guard ids.contains(id), CGDisplayMirrorsDisplay(id) == 0,
-                  let available = DisplayModes.available(for: id) else {
-                displayModes[id] = nil
-                continue
-            }
-            displayModes[id] = available.modes
-            list[index].resolutions = available.modes.map(DisplayModes.resolution(of:))
-            list[index].resolutionIndex = resolutionPreview[id] ?? available.current
+            guard ids.contains(id), let cached = resolutionCache[id] else { continue }
+            list[index].resolutions = cached.resolutions
+            list[index].resolutionIndex = resolutionPreview[id] ?? cached.current
         }
 
         // The last screen still on gets no switch, so every screen can never
@@ -179,6 +210,7 @@ final class DisplayController: ObservableObject {
             ($0.isBuiltIn ? 1 : 0, $0.name) < ($1.isBuiltIn ? 1 : 0, $1.name)
         }
         launchAtLogin = LoginItem.isEnabled
+        guard heavy else { return }
         // macOS resets gamma tables when displays are reconfigured.
         dimmer.reapplyAll()
         probeDDC()
@@ -225,7 +257,9 @@ final class DisplayController: ObservableObject {
         } else {
             switchOff(identity)
         }
-        refresh()
+        // Update the rows now; the full refresh follows once macOS settles.
+        rebuild(heavy: false)
+        scheduleRefresh()
     }
 
     private func switchOff(_ identity: DisplayIdentity) {
@@ -515,7 +549,8 @@ final class DisplayController: ObservableObject {
         if !DisplayModes.apply(modes[index], to: id) {
             problems[id] = "Couldn't change resolution"
         }
-        refresh()
+        rebuild(heavy: false)
+        scheduleRefresh()
     }
 
     // MARK: Keyboard keys
