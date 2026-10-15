@@ -26,9 +26,14 @@ struct ManagedDisplay: Identifiable, Hashable {
     var brightness: VCPValue?
     var contrast: VCPValue?
     var volume: VCPValue?
-    /// Software dimming level (0 = black, 1 = normal), offered when the
-    /// monitor's brightness can't be set over DDC/CI.
-    var dimLevel: Double?
+    /// Combined brightness (0...1): the DDC backlight with software dimming
+    /// below it, or software dimming alone (see BrightnessCurve). Nil when
+    /// the screen can't be adjusted.
+    var combinedBrightness: Double?
+    /// Scaled resolutions and the selected one. Empty for mirrors, which
+    /// follow the screen they mirror.
+    var resolutions: [Resolution] = []
+    var resolutionIndex: Int?
 
     /// Only external monitors can be switched (DDC or disconnect).
     var canToggle: Bool { !isBuiltIn }
@@ -52,8 +57,8 @@ final class DisplayController: ObservableObject {
     /// a time keeps the bus happy.
     private let ddcQueue = DispatchQueue(label: "Switchboard.ddc")
     private let dimmer = SoftwareDimmer()
-    private let keys = BrightnessKeys()
-    private let hud = BrightnessHUD()
+    private let keys = MediaKeys()
+    private let hud = LevelHUD()
     private var permissionTimer: Timer?
     private var didPromptForAccessibility = false
 
@@ -78,6 +83,12 @@ final class DisplayController: ObservableObject {
     private var pendingWrites: [WriteKey: UInt16] = [:]
     private var writesInFlight: Set<WriteKey> = []
 
+    /// Display modes behind each screen's resolution slider, the position
+    /// being dragged to, and the volume to restore when unmuting.
+    private var displayModes: [CGDirectDisplayID: [CGDisplayMode]] = [:]
+    private var resolutionPreview: [CGDirectDisplayID: Int] = [:]
+    private var mutedVolume: [CGDirectDisplayID: UInt16] = [:]
+
     private var isLocked = false
     /// Monitors switched off by lock/sleep, to switch back on afterwards.
     private var autoSwitchedOff: Set<CGDirectDisplayID> = []
@@ -87,8 +98,8 @@ final class DisplayController: ObservableObject {
         // A previous run may have quit or crashed with a screen disconnected:
         // bring it back so it can never get stuck off.
         reconnectAll()
-        keys.canHandle = { [weak self] id in self?.canAdjustBrightness(on: id) ?? false }
-        keys.onPress = { [weak self] up, fine, id in self?.adjustBrightness(up: up, fine: fine, on: id) }
+        keys.canHandle = { [weak self] key, id in self?.canHandle(key, on: id) ?? false }
+        keys.onPress = { [weak self] key, fine, id in self?.handle(key, fine: fine, on: id) }
         refresh()
         CGDisplayRegisterReconfigurationCallback({ _, _, userInfo in
             guard let userInfo else { return }
@@ -135,6 +146,19 @@ final class DisplayController: ObservableObject {
             }
         }
 
+        // Resolutions, for screens that aren't mirrors of another.
+        for index in list.indices {
+            let id = list[index].id
+            guard ids.contains(id), CGDisplayMirrorsDisplay(id) == 0,
+                  let available = DisplayModes.available(for: id) else {
+                displayModes[id] = nil
+                continue
+            }
+            displayModes[id] = available.modes
+            list[index].resolutions = available.modes.map(DisplayModes.resolution(of:))
+            list[index].resolutionIndex = resolutionPreview[id] ?? available.current
+        }
+
         // The last screen still on gets no switch, so every screen can never
         // be switched off at once.
         if list.filter(\.isOn).count <= 1 {
@@ -167,13 +191,13 @@ final class DisplayController: ObservableObject {
         display.autoOff = Preferences.autoOff(for: key)
 
         if display.offMethod == .disconnect {
-            // No DDC/CI on this monitor: dim it in software instead.
-            display.dimLevel = dimmer.level(for: id)
+            // No DDC/CI on this monitor: software dimming only.
+            display.combinedBrightness = combinedLevel(of: id, hardware: nil)
         } else if let values = ddcValues[id] {
             display.brightness = values[VCP.brightness]
             display.contrast = values[VCP.contrast]
             display.volume = values[VCP.volume]
-            if display.brightness == nil { display.dimLevel = dimmer.level(for: id) }
+            display.combinedBrightness = combinedLevel(of: id, hardware: display.brightness)
         }
         return display
     }
@@ -326,21 +350,78 @@ final class DisplayController: ObservableObject {
         }
     }
 
-    // MARK: Software dimming
+    // MARK: Combined brightness
 
-    func setDimLevel(_ level: Double, for id: CGDirectDisplayID) {
-        dimmer.setLevel(level, for: id)
-        let applied = dimmer.level(for: id)
-        updateRow(id) { $0.dimLevel = applied }
+    private func combinedLevel(of id: CGDirectDisplayID, hardware: VCPValue?) -> Double {
+        let software = dimmer.level(for: id)
+        if let hardware {
+            return BrightnessCurve.combined(
+                hardware: Double(hardware.current) / Double(hardware.max),
+                software: software
+            )
+        }
+        return BrightnessCurve.dimming(forSoftwareLevel: software)
     }
 
-    // MARK: Brightness keys
+    /// Set a screen's combined brightness (slider, All Screens or a key).
+    func setBrightness(_ level: Double, for id: CGDirectDisplayID) {
+        guard let display = displays.first(where: { $0.id == id }),
+              display.combinedBrightness != nil else { return }
+        let level = min(max(level, 0), 1)
+        if let brightness = display.brightness {
+            let (hardware, software) = BrightnessCurve.split(level)
+            let value = UInt16((hardware * Double(brightness.max)).rounded())
+            if value != brightness.current { setVCP(VCP.brightness, to: value, for: id) }
+            dimmer.setLevel(software, for: id)
+        } else {
+            dimmer.setLevel(BrightnessCurve.softwareLevel(forDimming: level), for: id)
+        }
+        updateRow(id) { $0.combinedBrightness = level }
+    }
+
+    private func isAdjustable(_ display: ManagedDisplay) -> Bool {
+        display.isOn && !display.isBuiltIn && display.combinedBrightness != nil
+    }
+
+    /// The All Screens slider: the average combined brightness, shown when
+    /// two or more screens can be adjusted.
+    var allScreensBrightness: Double? {
+        let levels = displays.filter { isAdjustable($0) }.compactMap(\.combinedBrightness)
+        guard levels.count > 1 else { return nil }
+        return levels.reduce(0, +) / Double(levels.count)
+    }
+
+    func setAllScreensBrightness(_ level: Double) {
+        for display in displays where isAdjustable(display) {
+            setBrightness(level, for: display.id)
+        }
+    }
+
+    // MARK: Resolution
+
+    /// The slider moved: show the size it points at. Nothing changes on the
+    /// screen until the slider is released.
+    func previewResolution(_ index: Int, for id: CGDirectDisplayID) {
+        resolutionPreview[id] = index
+        updateRow(id) { $0.resolutionIndex = index }
+    }
+
+    func applyResolution(for id: CGDirectDisplayID) {
+        guard let index = resolutionPreview.removeValue(forKey: id),
+              let modes = displayModes[id], modes.indices.contains(index) else { return }
+        if !DisplayModes.apply(modes[index], to: id) {
+            problems[id] = "Couldn't change resolution"
+        }
+        refresh()
+    }
+
+    // MARK: Keyboard keys
 
     func setBrightnessKeysEnabled(_ enabled: Bool) {
         Preferences.brightnessKeysEnabled = enabled
         brightnessKeysEnabled = enabled
-        if enabled && !BrightnessKeys.hasPermission {
-            BrightnessKeys.requestPermission()
+        if enabled && !MediaKeys.hasPermission {
+            MediaKeys.requestPermission()
         }
         syncBrightnessKeys()
     }
@@ -351,9 +432,9 @@ final class DisplayController: ObservableObject {
     private func syncBrightnessKeys() {
         if brightnessKeysEnabled {
             if !keys.isRunning {
-                if !BrightnessKeys.hasPermission && !didPromptForAccessibility {
+                if !MediaKeys.hasPermission && !didPromptForAccessibility {
                     didPromptForAccessibility = true
-                    BrightnessKeys.requestPermission()
+                    MediaKeys.requestPermission()
                 }
                 keys.start()
             }
@@ -372,6 +453,19 @@ final class DisplayController: ObservableObject {
         }
     }
 
+    private func canHandle(_ key: MediaKey, on id: CGDirectDisplayID) -> Bool {
+        key.isBrightness ? !brightnessTargets(for: id).isEmpty : volumeTarget() != nil
+    }
+
+    private func handle(_ key: MediaKey, fine: Bool, on id: CGDirectDisplayID) {
+        switch key {
+        case .brightnessUp, .brightnessDown:
+            adjustBrightness(up: key == .brightnessUp, fine: fine, on: id)
+        case .volumeUp, .volumeDown, .mute:
+            adjustVolume(key, fine: fine)
+        }
+    }
+
     /// Screens in the same mirror set show the same picture and are adjusted together.
     private func mirrorSet(of id: CGDirectDisplayID) -> [ManagedDisplay] {
         func primary(_ id: CGDirectDisplayID) -> CGDirectDisplayID {
@@ -382,10 +476,6 @@ final class DisplayController: ObservableObject {
         return displays.filter { primary($0.id) == set }
     }
 
-    private func isAdjustable(_ display: ManagedDisplay) -> Bool {
-        display.isOn && !display.isBuiltIn && (display.brightness != nil || display.dimLevel != nil)
-    }
-
     /// The screens a brightness key aimed at `id` adjusts: that screen and its
     /// mirrors, or, if none of them can be adjusted, every adjustable screen,
     /// so a key press never does nothing.
@@ -394,42 +484,51 @@ final class DisplayController: ObservableObject {
         return pointed.isEmpty ? displays.filter { isAdjustable($0) } : pointed
     }
 
-    private func canAdjustBrightness(on id: CGDirectDisplayID) -> Bool {
-        !brightnessTargets(for: id).isEmpty
-    }
-
-    /// One brightness-key press (or auto-repeat).
+    /// One brightness-key press: step the combined level and bring every
+    /// target screen to it, so mirrored screens stay matched.
     private func adjustBrightness(up: Bool, fine: Bool, on id: CGDirectDisplayID) {
         let targets = brightnessTargets(for: id)
-        var shown: Double?
+        guard let first = targets.first, let current = first.combinedBrightness else { return }
+        let level = BrightnessCurve.step(current, up: up, fine: fine)
         for display in targets {
-            let level = adjustBrightness(up: up, fine: fine, of: display)
-            if shown == nil { shown = level }
+            setBrightness(level, for: display.id)
         }
-        if let shown, let first = targets.first {
-            hud.show(level: shown, on: first.id)
-        }
+        hud.show(symbol: level < 0.01 ? "sun.min" : "sun.max.fill", level: level, on: first.id)
     }
 
-    /// Step one screen's brightness on a 16-step scale (64 with ⇧⌥), like
-    /// the system does, and return the new level (0...1).
-    private func adjustBrightness(up: Bool, fine: Bool, of display: ManagedDisplay) -> Double? {
-        let steps = fine ? 64.0 : 16.0
-        func stepped(_ level: Double) -> Double {
-            let next = ((level * steps).rounded() + (up ? 1 : -1)) / steps
-            return min(max(next, 0), 1)
+    /// The monitor whose speakers are the current sound output, when macOS
+    /// can't set their volume itself.
+    private func volumeTarget() -> ManagedDisplay? {
+        guard let output = AudioOutput.monitorOutputWithoutVolume() else { return nil }
+        let candidates = displays.filter { $0.isOn && $0.volume != nil }
+        let named = candidates.first {
+            !output.isEmpty && (output.localizedCaseInsensitiveContains($0.name)
+                || $0.name.localizedCaseInsensitiveContains(output))
         }
-        if let brightness = display.brightness {
-            let level = stepped(Double(brightness.current) / Double(brightness.max))
-            setVCP(VCP.brightness, to: UInt16((level * Double(brightness.max)).rounded()), for: display.id)
-            return level
+        return named ?? candidates.first
+    }
+
+    private func adjustVolume(_ key: MediaKey, fine: Bool) {
+        guard let display = volumeTarget(), let volume = display.volume else { return }
+        let id = display.id
+        let level: Double
+        if key == .mute {
+            if let restore = mutedVolume.removeValue(forKey: id) {
+                level = Double(restore) / Double(volume.max)
+            } else {
+                mutedVolume[id] = volume.current
+                level = 0
+            }
+        } else {
+            mutedVolume[id] = nil
+            let current = Double(volume.current) / Double(volume.max)
+            level = BrightnessCurve.step(current, up: key == .volumeUp, fine: fine)
         }
-        if let current = display.dimLevel {
-            let level = stepped(current)
-            setDimLevel(level, for: display.id)
-            return level
-        }
-        return nil
+        setVCP(VCP.volume, to: UInt16((level * Double(volume.max)).rounded()), for: id)
+        let symbol = level < 0.01 ? "speaker.slash.fill"
+            : level < 0.34 ? "speaker.wave.1.fill"
+            : level < 0.67 ? "speaker.wave.2.fill" : "speaker.wave.3.fill"
+        hud.show(symbol: symbol, level: level, on: id)
     }
 
     // MARK: Lock / sleep automation
@@ -500,6 +599,8 @@ final class DisplayController: ObservableObject {
         problems = [:]
         ddcValues = [:]
         autoSwitchedOff = []
+        resolutionPreview = [:]
+        mutedVolume = [:]
         brightnessKeysEnabled = Preferences.brightnessKeysEnabled
         if LoginItem.isAvailable { LoginItem.setEnabled(true) }
         refresh()

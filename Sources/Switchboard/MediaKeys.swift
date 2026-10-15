@@ -1,20 +1,29 @@
 import AppKit
 import ApplicationServices
 
-/// Makes the keyboard's brightness keys adjust the monitors.
+/// The keyboard keys Switchboard can take over.
+enum MediaKey {
+    case brightnessUp, brightnessDown
+    case volumeUp, volumeDown, mute
+
+    var isBrightness: Bool { self == .brightnessUp || self == .brightnessDown }
+}
+
+/// Makes the keyboard's brightness keys (and, for monitor speakers, the
+/// volume keys) control the monitors.
 ///
 /// A Mac mini has no screen of its own, so macOS ignores brightness keys
-/// ("not supported"). We intercept them with an event tap, which needs
-/// Accessibility permission (System Settings → Privacy & Security →
-/// Accessibility).
+/// ("not supported"), and it can't set the volume of a monitor's speakers.
+/// We intercept those keys with an event tap, which needs Accessibility
+/// permission (System Settings → Privacy & Security → Accessibility). Keys we
+/// can't act on pass through to macOS untouched.
 @MainActor
-final class BrightnessKeys {
-    /// Whether there's a screen to adjust for a key aimed at this one; if
-    /// not, the key passes through to macOS.
-    var canHandle: (@MainActor (_ displayID: CGDirectDisplayID) -> Bool)?
-    /// Called on each key press (and auto-repeat). `up` is brightness up;
-    /// `fine` is true with ⇧⌥ held, for quarter steps.
-    var onPress: (@MainActor (_ up: Bool, _ fine: Bool, _ displayID: CGDirectDisplayID) -> Void)?
+final class MediaKeys {
+    /// Whether we act on this key aimed at this screen; if not, macOS gets it.
+    var canHandle: (@MainActor (_ key: MediaKey, _ displayID: CGDirectDisplayID) -> Bool)?
+    /// Called on each press (and auto-repeat, except for mute). `fine` is
+    /// true with ⇧⌥ held, for quarter steps.
+    var onPress: (@MainActor (_ key: MediaKey, _ fine: Bool, _ displayID: CGDirectDisplayID) -> Void)?
 
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
@@ -34,7 +43,7 @@ final class BrightnessKeys {
     @discardableResult
     func start() -> Bool {
         guard tap == nil else { return true }
-        // NX_SYSDEFINED (14) carries the media and brightness keys.
+        // NX_SYSDEFINED (14) carries the media, volume and brightness keys.
         let mask = CGEventMask(1 << 14)
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
@@ -43,14 +52,14 @@ final class BrightnessKeys {
             eventsOfInterest: mask,
             callback: { _, type, event, userInfo in
                 guard let userInfo else { return Unmanaged.passUnretained(event) }
-                let keys = Unmanaged<BrightnessKeys>.fromOpaque(userInfo).takeUnretainedValue()
+                let keys = Unmanaged<MediaKeys>.fromOpaque(userInfo).takeUnretainedValue()
                 // The tap's run-loop source is on the main run loop.
                 let swallow = MainActor.assumeIsolated { keys.handle(type: type, event: event) }
                 return swallow ? nil : Unmanaged.passUnretained(event)
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            Log.app.notice("Brightness keys: event tap refused (Accessibility permission missing)")
+            Log.app.notice("Keys: event tap refused (Accessibility permission missing)")
             return false
         }
 
@@ -59,7 +68,7 @@ final class BrightnessKeys {
         CGEvent.tapEnable(tap: tap, enable: true)
         self.tap = tap
         self.source = source
-        Log.app.info("Brightness keys: listening")
+        Log.app.info("Keys: listening")
         return true
     }
 
@@ -70,7 +79,7 @@ final class BrightnessKeys {
         CFMachPortInvalidate(tap)
         self.tap = nil
         self.source = nil
-        Log.app.info("Brightness keys: stopped")
+        Log.app.info("Keys: stopped")
     }
 
     /// Returns true to swallow the event.
@@ -88,22 +97,28 @@ final class BrightnessKeys {
         let data = nsEvent.data1
         let keyCode = (data & 0xFFFF_0000) >> 16
         let isKeyDown = ((data & 0xFF00) >> 8) == 0x0A
-        let up: Bool
+        let isRepeat = (data & 0x1) != 0
+        let key: MediaKey
         switch keyCode {
-        case 2: up = true   // NX_KEYTYPE_BRIGHTNESS_UP
-        case 3: up = false  // NX_KEYTYPE_BRIGHTNESS_DOWN
-        default: return false // volume, play/pause etc.: leave to macOS
+        case 0: key = .volumeUp        // NX_KEYTYPE_SOUND_UP
+        case 1: key = .volumeDown      // NX_KEYTYPE_SOUND_DOWN
+        case 2: key = .brightnessUp    // NX_KEYTYPE_BRIGHTNESS_UP
+        case 3: key = .brightnessDown  // NX_KEYTYPE_BRIGHTNESS_DOWN
+        case 7: key = .mute            // NX_KEYTYPE_MUTE
+        default: return false          // play/pause etc.: leave to macOS
         }
 
         let displayID = Self.displayUnderPointer() ?? CGMainDisplayID()
-        guard canHandle?(displayID) == true else {
-            Log.app.notice("Brightness key: no adjustable screen yet, passing to macOS")
+        guard canHandle?(key, displayID) == true else {
+            if key.isBrightness {
+                Log.app.notice("Brightness key: no adjustable screen yet, passing to macOS")
+            }
             return false
         }
-        if isKeyDown {
+        if isKeyDown && !(key == .mute && isRepeat) {
             let fine = nsEvent.modifierFlags.contains([.shift, .option])
-            Log.app.debug("Brightness key \(up ? "up" : "down", privacy: .public)\(fine ? " (fine)" : "", privacy: .public) on display \(displayID)")
-            onPress?(up, fine, displayID)
+            Log.app.debug("Key \(String(describing: key), privacy: .public)\(fine ? " (fine)" : "", privacy: .public) on display \(displayID)")
+            onPress?(key, fine, displayID)
         }
         return true // swallow key-down and key-up alike, so macOS shows no "not supported" HUD
     }

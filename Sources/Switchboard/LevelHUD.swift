@@ -1,19 +1,20 @@
 import AppKit
 import SwiftUI
 
-/// The on-screen brightness indicator shown when a brightness key is pressed:
-/// a Liquid Glass capsule with a sun and a 16-step level bar, top right of
-/// the screen, fading out shortly after the last press, like the system's own.
+/// The on-screen indicator shown when a brightness or volume key is pressed:
+/// a Liquid Glass capsule with a symbol and a level bar, top right of the
+/// screen, fading out shortly after the last press, like the system's own.
 @MainActor
-final class BrightnessHUD {
+final class LevelHUD {
     private let model = HUDModel()
     private var panel: NSPanel?
     private var hideTimer: Timer?
 
     private static let size = NSSize(width: 240, height: 52)
 
-    /// Show `level` (0...1) on the screen showing `displayID`.
-    func show(level: Double, on displayID: CGDirectDisplayID) {
+    /// Show `level` (0...1) with an SF Symbol on the screen showing `displayID`.
+    func show(symbol: String, level: Double, on displayID: CGDirectDisplayID) {
+        model.symbol = symbol
         model.level = min(max(level, 0), 1)
 
         let panel = self.panel ?? makePanel()
@@ -77,6 +78,7 @@ final class BrightnessHUD {
 }
 
 private final class HUDModel: ObservableObject {
+    @Published var symbol = "sun.max.fill"
     @Published var level: Double = 0
 }
 
@@ -85,9 +87,10 @@ private struct HUDView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: model.level < 0.01 ? "sun.min" : "sun.max.fill")
+            Image(systemName: model.symbol)
                 .font(.system(size: 15, weight: .semibold))
-                .frame(width: 20)
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: 22)
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule().fill(.quaternary)
@@ -103,6 +106,6 @@ private struct HUDView: View {
         .glassEffect(.regular, in: .capsule)
         .animation(.snappy(duration: 0.15), value: model.level)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("Brightness \(Int((model.level * 100).rounded())) percent"))
+        .accessibilityLabel(Text("\(Int((model.level * 100).rounded())) percent"))
     }
 }

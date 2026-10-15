@@ -39,13 +39,16 @@ struct MenuContent: View {
             GlassEffectContainer(spacing: 10) {
                 VStack(spacing: 10) {
                     screensCard
+                    if let level = controller.allScreensBrightness {
+                        allScreensCard(level)
+                    }
                     optionsCard
                 }
             }
             footer
         }
         .padding(12)
-        .frame(width: 340)
+        .frame(width: 360)
         .onAppear { controller.refresh() }
     }
 
@@ -73,14 +76,39 @@ struct MenuContent: View {
         .glassEffect(.regular, in: .rect(cornerRadius: 22))
     }
 
+    // MARK: All screens
+
+    private func allScreensCard(_ level: Double) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Brightness")
+                    .font(.callout.weight(.semibold))
+                Text("All Screens")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            SliderRow(icon: "sun.max.fill", label: "Brightness, all screens",
+                      value: "\(Int((level * 100).rounded()))%") {
+                Slider(value: Binding(
+                    get: { level },
+                    set: { controller.setAllScreensBrightness($0) }
+                ), in: 0...1)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .glassEffect(.regular, in: .rect(cornerRadius: 22))
+    }
+
     // MARK: Options
 
     private var optionsCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             OptionRow(
                 icon: "keyboard",
-                title: "Brightness Keys",
-                detail: "Adjust your monitors · ⇧⌥ for finer steps",
+                title: "Keyboard Keys",
+                detail: "Brightness and monitor volume · ⇧⌥ for fine steps",
                 isOn: Binding(
                     get: { controller.brightnessKeysEnabled },
                     set: { controller.setBrightnessKeysEnabled($0) }
@@ -296,14 +324,20 @@ struct DisplayRow: View {
     }
 
     private var hasSliders: Bool {
-        display.brightness != nil || display.contrast != nil
-            || display.volume != nil || display.dimLevel != nil
+        display.combinedBrightness != nil || display.contrast != nil
+            || display.volume != nil || display.resolutions.count > 1
     }
 
     @ViewBuilder
     private var sliders: some View {
-        if let brightness = display.brightness {
-            vcpSlider(VCP.brightness, brightness, icon: "sun.max.fill", label: "Brightness")
+        if let level = display.combinedBrightness {
+            SliderRow(icon: "sun.max.fill", label: "Brightness",
+                      value: "\(Int((level * 100).rounded()))%") {
+                Slider(value: Binding(
+                    get: { level },
+                    set: { controller.setBrightness($0, for: display.id) }
+                ), in: 0...1)
+            }
         }
         if let contrast = display.contrast {
             vcpSlider(VCP.contrast, contrast, icon: "circle.lefthalf.filled", label: "Contrast")
@@ -311,19 +345,29 @@ struct DisplayRow: View {
         if let volume = display.volume {
             vcpSlider(VCP.volume, volume, icon: "speaker.wave.2.fill", label: "Volume")
         }
-        if let level = display.dimLevel {
-            SliderRow(icon: "sun.min.fill", label: "Dim", percent: Int((level * 100).rounded())) {
-                Slider(value: Binding(
-                    get: { level },
-                    set: { controller.setDimLevel($0, for: display.id) }
-                ), in: 0...1)
+        if display.resolutions.count > 1, let index = display.resolutionIndex,
+           display.resolutions.indices.contains(index) {
+            let resolution = display.resolutions[index]
+            SliderRow(icon: "arrow.up.left.and.arrow.down.right", label: "Resolution",
+                      value: resolution.label, valueWidth: 86) {
+                Slider(
+                    value: Binding(
+                        get: { Double(index) },
+                        set: { controller.previewResolution(Int($0.rounded()), for: display.id) }
+                    ),
+                    in: 0...Double(display.resolutions.count - 1),
+                    step: 1,
+                    onEditingChanged: { editing in
+                        if !editing { controller.applyResolution(for: display.id) }
+                    }
+                )
             }
         }
     }
 
     private func vcpSlider(_ vcp: UInt8, _ value: VCPValue, icon: String, label: String) -> some View {
         let percent = Int((Double(value.current) / Double(value.max) * 100).rounded())
-        return SliderRow(icon: icon, label: label, percent: percent) {
+        return SliderRow(icon: icon, label: label, value: "\(percent)%") {
             Slider(value: Binding(
                 get: { Double(value.current) },
                 set: { controller.setVCP(vcp, to: UInt16($0.rounded()), for: display.id) }
@@ -365,11 +409,12 @@ struct DisplayRow: View {
     }
 }
 
-/// A slider with its symbol and a percentage readout.
+/// A slider with its symbol and a value readout ("72%", "2560 × 1440").
 struct SliderRow<S: View>: View {
     let icon: String
     let label: String
-    let percent: Int
+    let value: String
+    var valueWidth: CGFloat = 36
     @ViewBuilder let slider: () -> S
 
     var body: some View {
@@ -380,14 +425,16 @@ struct SliderRow<S: View>: View {
                 .frame(width: 32)
             slider()
                 .controlSize(.small)
-            Text("\(percent)%")
+            Text(value)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .contentTransition(.numericText())
-                .frame(width: 36, alignment: .trailing)
+                .lineLimit(1)
+                .frame(width: valueWidth, alignment: .trailing)
         }
         .help(label)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(label))
+        .accessibilityValue(Text(value))
     }
 }

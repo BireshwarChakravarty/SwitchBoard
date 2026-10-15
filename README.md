@@ -16,13 +16,20 @@ Switchboard gives every external screen a **switch** and a set of **faders**:
   hardware standby. Monitors that don't (common on portable monitors) are
   disconnected in software, as if the cable were pulled, and reconnected when
   you switch them back on.
-- **Brightness, contrast and volume** over DDC/CI, with live percentage
-  readouts.
-- **Software dimming** (down to black) for monitors without DDC/CI.
+- **Combined brightness.** One brightness slider per screen: the monitor's
+  real backlight over DDC/CI, continuing below its minimum with software
+  dimming. Monitors without DDC/CI are dimmed in software. An **All Screens**
+  slider moves every screen together.
+- **Contrast and volume** over DDC/CI, with live readouts.
+- **Resolution slider** with the scaled sizes System Settings offers (HiDPI
+  preferred), applied when you let go.
 - **Your keyboard's brightness keys work.** On a Mac mini macOS says "not
   supported"; with Switchboard they adjust the monitor under the pointer
-  (and any screen mirroring it), with an on-screen brightness indicator.
-  Hold ⇧⌥ for finer steps.
+  (and any screen mirroring it), with an on-screen indicator. Hold ⇧⌥ for
+  finer steps.
+- **Volume keys for monitor speakers.** When sound plays through a monitor
+  over HDMI or DisplayPort, which macOS can't adjust, the volume and mute keys
+  control the monitor's own volume.
 - **Off while locked or asleep:** per screen, switch it off when the Mac locks
   or sleeps and back on when you return.
 - **Mirroring-aware:** shows "Mirrored to …" / "Mirror of …" like the system
@@ -76,8 +83,9 @@ Click the monitor-and-switch icon in the menu bar.
 | Control | What it does |
 |---|---|
 | Switch next to a screen | Switch it off (standby or disconnect) and on again |
-| Sliders under a screen | Brightness, contrast, volume (DDC/CI) or Dim (software) |
-| **Brightness Keys** | Keyboard brightness keys adjust your monitors (on by default) |
+| Sliders under a screen | Brightness (combined), contrast, volume, resolution |
+| **All Screens** | One brightness slider for every screen (shown with two or more) |
+| **Keyboard Keys** | Brightness keys adjust your monitors; volume keys adjust monitor speakers (on by default) |
 | **Start at Login** | Launch Switchboard when you log in |
 | ↺ (counter-clockwise arrow) | Reset to Defaults (asks first) |
 | ⟳ (clockwise arrow) | Re-scan screens |
@@ -91,9 +99,10 @@ Click the monitor-and-switch icon in the menu bar.
   disconnecting and remembers that.
 - **Switch Off While Locked or Asleep**.
 
-### Brightness keys
+### Keyboard keys
 
-Brightness keys are on from the first launch. macOS only lets an app react
+Brightness keys (and volume keys, for monitor speakers) are on from the
+first launch. macOS only lets an app react
 to them with **Accessibility** permission, so Switchboard asks for it on
 launch:
 
@@ -101,15 +110,20 @@ launch:
 2. Turn on **Switchboard** under Privacy & Security → Accessibility.
 
 The keys start working within a couple of seconds, with no relaunch needed.
-Until then the Brightness Keys row shows **Needs Accessibility access**, with
-a button straight to that setting.
+Until then the Keyboard Keys row shows **Needs Accessibility access**, with a
+button straight to that setting.
 
 - Each press moves brightness one of 16 steps, like a built-in screen; hold
   **⇧⌥** for 64 finer steps. A brightness indicator appears at the top right.
 - Keys adjust the monitor under the pointer, together with any screen
   mirroring it. If that screen can't be adjusted, they adjust your other
   monitors.
-- DDC/CI monitors change their real backlight; others are dimmed in software.
+- Brightness keys use the combined scale: DDC/CI monitors change their real
+  backlight, then keep dimming in software below its minimum. Screens never
+  go fully black.
+- Volume and mute keys act on a monitor only when sound plays through its
+  speakers over HDMI or DisplayPort, which macOS can't adjust. Otherwise they
+  work as usual.
 
 If you rebuild the app, macOS treats it as a new app. `make-app.sh` clears
 the old permission, so grant it again when asked.
@@ -122,8 +136,10 @@ the old permission, so grant it again when asked.
 | Brightness / contrast / volume | DDC/CI VCP `0x10` / `0x12` / `0x62`, read with *Get VCP Feature* |
 | DDC transport | `IOAVService` I²C on Apple Silicon (private IOKit symbols), matched to each screen through the IORegistry and its EDID |
 | Disconnect | `CGSConfigureDisplayEnabled` (undocumented), applied for the login session only |
-| Dimming | Display gamma tables (`CGSetDisplayTransferByTable`) |
-| Brightness keys | A `CGEventTap` on the system-defined brightness key events; indicator is a Liquid Glass `NSPanel` |
+| Dimming | Display gamma tables (`CGSetDisplayTransferByTable`), below the hardware minimum for DDC/CI monitors |
+| Resolution | `CGDisplayCopyAllDisplayModes` scaled modes, applied with `CGConfigureDisplayWithDisplayMode` |
+| Monitor speakers | Core Audio detects HDMI/DisplayPort output without volume control; volume is set over DDC/CI |
+| Keyboard keys | A `CGEventTap` on the system-defined brightness and volume key events; indicator is a Liquid Glass `NSPanel` |
 | Start at Login | `SMAppService` |
 
 The DDC approach is the one used by the open-source
@@ -141,10 +157,10 @@ reproduce a problem:
 log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"'
 ```
 
-- **Brightness keys do nothing**: check Switchboard is on under Privacy &
+- **Keyboard keys do nothing**: check Switchboard is on under Privacy &
   Security → Accessibility (after a rebuild, turn it off and on). In the
-  log, `Brightness keys: listening` means the keys are being caught, and each
-  press logs `Brightness key up/down`. If presses never appear, your keyboard
+  log, `Keys: listening` means the keys are being caught, and each press logs
+  `Key brightnessUp` (or similar). If presses never appear, your keyboard
   doesn't send standard brightness keys.
 - **"Not responding to DDC/CI"**: the monitor didn't answer. Enable DDC/CI in
   its menu, try another port or cable, or use **Switch Off By →
@@ -170,8 +186,11 @@ Sources/Switchboard/
 ├── IOKitPrivate.swift        Bindings for the private IOAVService symbols
 ├── SoftwareDisconnect.swift  Software disconnect / reconnect
 ├── SoftwareDimmer.swift      Gamma-table dimming
-├── BrightnessKeys.swift      Brightness-key event tap
-├── BrightnessHUD.swift       On-screen brightness indicator
+├── MediaKeys.swift           Brightness and volume key event tap
+├── LevelHUD.swift            On-screen brightness/volume indicator
+├── BrightnessCurve.swift     Combined hardware + software brightness scale
+├── DisplayModes.swift        Resolutions
+├── AudioOutput.swift         Detects monitor speakers macOS can't adjust
 ├── Displays.swift            CoreGraphics display lists
 ├── Preferences.swift         Per-screen and app settings
 ├── Reset.swift               Restore every screen (`--reset`, Reset to Defaults)

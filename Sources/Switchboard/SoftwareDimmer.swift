@@ -27,6 +27,8 @@ final class SoftwareDimmer {
 
     func setLevel(_ level: Double, for id: CGDirectDisplayID) {
         let level = min(max(level, 0), 1)
+        // Already undimmed: nothing to write (keeps slider drags cheap).
+        if level >= 0.999 && levels[id] == nil { return }
         if originals[id] == nil {
             originals[id] = Self.readTable(id) ?? Self.linearTable
         }
