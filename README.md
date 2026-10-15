@@ -30,6 +30,9 @@ Switchboard gives every external screen a **switch** and a set of **faders**:
 - **Volume keys for monitor speakers.** When sound plays through a monitor
   over HDMI or DisplayPort, which macOS can't adjust, the volume and mute keys
   control the monitor's own volume.
+- **Match Light & Dark Mode:** each screen remembers a brightness for Light
+  mode and one for Dark mode, and switches when macOS does, including on its
+  Auto schedule. The app itself follows the system appearance too.
 - **Off while locked or asleep:** per screen, switch it off when the Mac locks
   or sleeps and back on when you return.
 - **Mirroring-aware:** shows "Mirrored to …" / "Mirror of …" like the system
@@ -86,6 +89,7 @@ Click the monitor-and-switch icon in the menu bar.
 | Sliders under a screen | Brightness (combined), contrast, volume, resolution |
 | **All Screens** | One brightness slider for every screen (shown with two or more) |
 | **Keyboard Keys** | Brightness keys adjust your monitors; volume keys adjust monitor speakers (on by default) |
+| **Match Light & Dark Mode** | Each screen keeps a brightness per appearance and switches with macOS |
 | **Start at Login** | Launch Switchboard when you log in |
 | ↺ (counter-clockwise arrow) | Reset to Defaults (asks first) |
 | ⟳ (clockwise arrow) | Re-scan screens |

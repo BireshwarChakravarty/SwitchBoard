@@ -128,6 +128,16 @@ struct MenuContent: View {
                 .padding(.horizontal, 14)
                 .padding(.bottom, 8)
             }
+            Divider().padding(.leading, 58).padding(.trailing, 14)
+            OptionRow(
+                icon: "circle.lefthalf.filled",
+                title: "Match Light & Dark Mode",
+                detail: "Screens remember a brightness for each",
+                isOn: Binding(
+                    get: { controller.brightnessFollowsAppearance },
+                    set: { controller.setBrightnessFollowsAppearance($0) }
+                )
+            )
             if LoginItem.isAvailable {
                 Divider().padding(.leading, 58).padding(.trailing, 14)
                 OptionRow(

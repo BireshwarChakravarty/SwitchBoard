@@ -19,6 +19,8 @@ enum Preferences {
     private static let autoOffKey = "autoOffWhenLockedOrAsleep"
     static let disconnectedKey = "disconnectedDisplayIDs"
     private static let brightnessKeysKey = "brightnessKeysEnabled"
+    private static let followAppearanceKey = "brightnessFollowsAppearance"
+    private static let appearanceBrightnessKey = "appearanceBrightness"
 
     static func offMethod(for monitor: String) -> OffMethod {
         let stored = defaults.dictionary(forKey: offMethodKey)?[monitor] as? String
@@ -54,6 +56,27 @@ enum Preferences {
         set { defaults.set(newValue, forKey: brightnessKeysKey) }
     }
 
+    /// Each screen remembers one brightness for Light mode and one for Dark
+    /// mode, and switches between them with the system appearance.
+    static var brightnessFollowsAppearance: Bool {
+        get { defaults.object(forKey: followAppearanceKey) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: followAppearanceKey) }
+    }
+
+    /// The combined brightness last used on this monitor in Light or Dark mode.
+    static func brightness(for monitor: String, dark: Bool) -> Double? {
+        let entry = defaults.dictionary(forKey: appearanceBrightnessKey)?[monitor] as? [String: Double]
+        return entry?[dark ? "dark" : "light"]
+    }
+
+    static func setBrightness(_ level: Double, for monitor: String, dark: Bool) {
+        var all = defaults.dictionary(forKey: appearanceBrightnessKey) ?? [:]
+        var entry = all[monitor] as? [String: Double] ?? [:]
+        entry[dark ? "dark" : "light"] = level
+        all[monitor] = entry
+        defaults.set(all, forKey: appearanceBrightnessKey)
+    }
+
     /// Displays this app has disconnected in software, so they can be
     /// reconnected even if the app quit or crashed in the meantime.
     static var disconnectedDisplays: Set<CGDirectDisplayID> {
@@ -74,7 +97,8 @@ enum Preferences {
 
     /// Forget every setting (Reset to Defaults).
     static func resetAll() {
-        for key in [offMethodKey, switchVisibleKey, autoOffKey, disconnectedKey, brightnessKeysKey] {
+        for key in [offMethodKey, switchVisibleKey, autoOffKey, disconnectedKey, brightnessKeysKey,
+                    followAppearanceKey, appearanceBrightnessKey] {
             defaults.removeObject(forKey: key)
         }
     }

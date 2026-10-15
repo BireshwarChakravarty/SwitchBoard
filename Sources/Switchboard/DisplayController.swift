@@ -49,6 +49,8 @@ final class DisplayController: ObservableObject {
     @Published private(set) var brightnessKeysEnabled = Preferences.brightnessKeysEnabled
     /// Brightness keys are on but macOS hasn't granted Accessibility yet.
     @Published private(set) var brightnessKeysNeedPermission = false
+    /// Brightness follows Light/Dark mode (see Preferences.brightnessFollowsAppearance).
+    @Published private(set) var brightnessFollowsAppearance = Preferences.brightnessFollowsAppearance
     /// Reset to Defaults was clicked and awaits confirmation.
     @Published private(set) var confirmingReset = false
 
@@ -108,6 +110,7 @@ final class DisplayController: ObservableObject {
             Task { @MainActor in controller.refresh() }
         }, Unmanaged.passUnretained(self).toOpaque())
         observeSystemEvents()
+        applyAppearanceBrightness()
     }
 
     func refresh() {
@@ -306,6 +309,8 @@ final class DisplayController: ObservableObject {
                     self.probing.remove(id)
                     self.ddcValues[id] = result
                     self.refresh()
+                    // Now that its brightness is known, bring it to this mode's level.
+                    self.applyAppearanceBrightness(to: id)
                 }
             }
         }
@@ -399,6 +404,42 @@ final class DisplayController: ObservableObject {
             dimmer.setLevel(BrightnessCurve.softwareLevel(forDimming: level), for: id)
         }
         updateRow(id) { $0.combinedBrightness = level }
+        if brightnessFollowsAppearance, let key = identities[id]?.key {
+            Preferences.setBrightness(level, for: key, dark: isDarkMode)
+        }
+    }
+
+    // MARK: Light and Dark mode
+
+    private var isDarkMode: Bool {
+        NSApplication.shared.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
+    func setBrightnessFollowsAppearance(_ enabled: Bool) {
+        Preferences.brightnessFollowsAppearance = enabled
+        brightnessFollowsAppearance = enabled
+        guard enabled else { return }
+        // Start from the current levels for the current mode.
+        let dark = isDarkMode
+        for display in displays where isAdjustable(display) {
+            if let key = identities[display.id]?.key, let level = display.combinedBrightness {
+                Preferences.setBrightness(level, for: key, dark: dark)
+            }
+        }
+    }
+
+    /// Bring screens to the brightness last used in the current mode. A
+    /// screen with nothing saved for this mode keeps its brightness until you
+    /// adjust it, which saves it.
+    private func applyAppearanceBrightness(to only: CGDirectDisplayID? = nil) {
+        guard brightnessFollowsAppearance else { return }
+        let dark = isDarkMode
+        for display in displays where isAdjustable(display) && (only == nil || display.id == only) {
+            guard let key = identities[display.id]?.key,
+                  let level = Preferences.brightness(for: key, dark: dark),
+                  abs(level - (display.combinedBrightness ?? level)) > 0.001 else { continue }
+            setBrightness(level, for: display.id)
+        }
     }
 
     private func isAdjustable(_ display: ManagedDisplay) -> Bool {
@@ -572,6 +613,14 @@ final class DisplayController: ObservableObject {
         }
 
         let distributed = DistributedNotificationCenter.default()
+        // Light/Dark mode changed (by hand or on the Auto schedule). The app's
+        // appearance updates a moment after the notification, so wait briefly.
+        distributed.addObserver(forName: Notification.Name("AppleInterfaceThemeChangedNotification"), object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                self?.applyAppearanceBrightness()
+            }
+        }
         distributed.addObserver(forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.isLocked = true
@@ -623,6 +672,7 @@ final class DisplayController: ObservableObject {
         autoSwitchedOff = []
         resolutionPreview = [:]
         mutedVolume = [:]
+        brightnessFollowsAppearance = Preferences.brightnessFollowsAppearance
         brightnessKeysEnabled = Preferences.brightnessKeysEnabled
         if LoginItem.isAvailable { LoginItem.setEnabled(true) }
         refresh()
