@@ -1,0 +1,80 @@
+import Foundation
+import CoreGraphics
+
+/// How a monitor is switched off.
+enum OffMethod: String, Hashable {
+    /// DDC/CI power standby: the monitor itself sleeps (power LED amber).
+    case standby
+    /// Software disconnect: macOS stops using the monitor (see SoftwareDisconnect).
+    case disconnect
+}
+
+/// Per-monitor and app settings, remembered across launches. Monitors are
+/// keyed by vendor/model/serial (`DisplayIdentity.key`), which stays the same
+/// across reconnects and reboots, unlike CGDirectDisplayID.
+enum Preferences {
+    private static let defaults = UserDefaults.standard
+    private static let offMethodKey = "offMethod"
+    private static let switchVisibleKey = "switchVisible"
+    private static let autoOffKey = "autoOffWhenLockedOrAsleep"
+    static let disconnectedKey = "disconnectedDisplayIDs"
+    private static let brightnessKeysKey = "brightnessKeysEnabled"
+
+    static func offMethod(for monitor: String) -> OffMethod {
+        let stored = defaults.dictionary(forKey: offMethodKey)?[monitor] as? String
+        return stored.flatMap(OffMethod.init(rawValue:)) ?? .standby
+    }
+
+    static func setOffMethod(_ method: OffMethod, for monitor: String) {
+        set(method.rawValue, for: monitor, in: offMethodKey)
+    }
+
+    /// Nil when the user hasn't chosen; the caller picks the default.
+    static func switchVisible(for monitor: String) -> Bool? {
+        defaults.dictionary(forKey: switchVisibleKey)?[monitor] as? Bool
+    }
+
+    static func setSwitchVisible(_ visible: Bool, for monitor: String) {
+        set(visible, for: monitor, in: switchVisibleKey)
+    }
+
+    /// Switch this monitor off when the screen locks or the Mac sleeps, and
+    /// back on at unlock/wake.
+    static func autoOff(for monitor: String) -> Bool {
+        defaults.dictionary(forKey: autoOffKey)?[monitor] as? Bool ?? false
+    }
+
+    static func setAutoOff(_ enabled: Bool, for monitor: String) {
+        set(enabled, for: monitor, in: autoOffKey)
+    }
+
+    static var brightnessKeysEnabled: Bool {
+        get { defaults.bool(forKey: brightnessKeysKey) }
+        set { defaults.set(newValue, forKey: brightnessKeysKey) }
+    }
+
+    /// Displays this app has disconnected in software, so they can be
+    /// reconnected even if the app quit or crashed in the meantime.
+    static var disconnectedDisplays: Set<CGDirectDisplayID> {
+        get {
+            let stored = defaults.array(forKey: disconnectedKey) as? [NSNumber] ?? []
+            return Set(stored.map(\.uint32Value))
+        }
+        set {
+            defaults.set(newValue.map { NSNumber(value: $0) }, forKey: disconnectedKey)
+        }
+    }
+
+    private static func set(_ value: Any, for monitor: String, in key: String) {
+        var all = defaults.dictionary(forKey: key) ?? [:]
+        all[monitor] = value
+        defaults.set(all, forKey: key)
+    }
+
+    /// Forget every setting (Reset to Defaults).
+    static func resetAll() {
+        for key in [offMethodKey, switchVisibleKey, autoOffKey, disconnectedKey, brightnessKeysKey] {
+            defaults.removeObject(forKey: key)
+        }
+    }
+}
