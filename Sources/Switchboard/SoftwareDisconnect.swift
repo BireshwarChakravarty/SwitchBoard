@@ -3,8 +3,9 @@ import CoreGraphics
 
 /// Switches a display off "in software": macOS stops using it as if the cable
 /// had been pulled, so windows move to the remaining screens and the monitor
-/// sees no signal (most then go to sleep on their own). The other screens
-/// stay on: the default fade-to-black of display configurations is disabled.
+/// sees no signal (most then go to sleep on their own). It tries to keep the
+/// other screens on by disabling the default fade-to-black of display
+/// configurations.
 ///
 /// This is the fallback for monitors that don't answer DDC/CI. It uses the
 /// private `CGSConfigureDisplayEnabled`, looked up at runtime so the app still
@@ -31,28 +32,47 @@ enum SoftwareDisconnect {
     }()
 
     /// Enable (reconnect) or disable (disconnect) a display. Returns true on success.
+    ///
+    /// Tries first without the fade, so other screens stay on. If macOS
+    /// rejects that, it retries with the default fade, which always worked.
     @discardableResult
     static func setEnabled(_ enabled: Bool, displayID: CGDirectDisplayID) -> Bool {
+        if apply(enabled, displayID: displayID, fade: false) { return true }
+        Log.display.notice("Display \(displayID): retrying with the default fade")
+        return apply(enabled, displayID: displayID, fade: true)
+    }
+
+    private static func apply(_ enabled: Bool, displayID: CGDirectDisplayID, fade: Bool) -> Bool {
         guard let configure = configureEnabled else { return false }
 
         var config: CGDisplayConfigRef?
-        guard CGBeginDisplayConfiguration(&config) == .success, let config else { return false }
+        let begun = CGBeginDisplayConfiguration(&config)
+        guard begun == .success, let config else {
+            Log.display.error("CGBeginDisplayConfiguration failed: \(begun.rawValue)")
+            return false
+        }
 
-        // By default a display configuration fades *every* screen to black
-        // and back. Turn that off, so the other screens stay on while this
-        // one is disconnected or reconnected.
-        CGConfigureDisplayFadeEffect(config, 0, 0, 0, 0, 0)
+        if !fade {
+            // By default a display configuration fades every screen to black
+            // and back; turn that off.
+            let faded = CGConfigureDisplayFadeEffect(config, 0, 0, 0, 0, 0)
+            if faded != .success {
+                Log.display.notice("CGConfigureDisplayFadeEffect failed: \(faded.rawValue)")
+            }
+        }
 
         let result = configure(config, displayID, enabled)
         guard result == 0 else {
-            Log.display.error("CGSConfigureDisplayEnabled(\(displayID), \(enabled)) failed: \(result)")
+            Log.display.error("CGSConfigureDisplayEnabled(\(displayID), \(enabled), fade: \(fade)) failed: \(result)")
             CGCancelDisplayConfiguration(config)
             return false
         }
         let completed = CGCompleteDisplayConfiguration(config, .forSession)
         if completed != .success {
-            Log.display.error("CGCompleteDisplayConfiguration failed: \(completed.rawValue)")
+            Log.display.error("CGCompleteDisplayConfiguration(fade: \(fade)) failed: \(completed.rawValue)")
+            return false
         }
-        return completed == .success
+        Log.display.info("Display \(displayID) \(enabled ? "connected" : "disconnected", privacy: .public) (fade: \(fade))")
+        return true
     }
 }
