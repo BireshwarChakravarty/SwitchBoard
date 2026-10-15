@@ -392,6 +392,12 @@ struct DisplayRow: View {
                 get: { display.autoOff },
                 set: { controller.setAutoOff($0, for: display.id) }
             ))
+            if display.brightness != nil || display.contrast != nil {
+                Divider()
+                Button("Restore Factory Brightness & Contrast") {
+                    controller.restoreFactoryPicture(for: display.id)
+                }
+            }
         }
     }
 

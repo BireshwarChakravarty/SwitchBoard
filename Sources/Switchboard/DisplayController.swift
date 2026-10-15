@@ -350,6 +350,28 @@ final class DisplayController: ObservableObject {
         }
     }
 
+    /// Ask the monitor to restore its factory brightness and contrast, then
+    /// re-read them so the sliders match.
+    func restoreFactoryPicture(for id: CGDirectDisplayID) {
+        guard let identity = identities[id] else { return }
+        problems[id] = nil
+        // Our software dimming sits on top of the hardware: clear it too.
+        dimmer.setLevel(1, for: id)
+        let ddc = self.ddc
+        ddcQueue.async {
+            let ok = ddc.write(VCP.restoreFactoryLuminanceContrast, value: 1, for: identity)
+            // Give the monitor a moment to apply it before reading back.
+            Thread.sleep(forTimeInterval: 1)
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if !ok { self.problems[id] = "Couldn't restore factory settings" }
+                Log.ddc.info("Restore factory brightness/contrast on \(identity.name, privacy: .public): \(ok ? "sent" : "failed", privacy: .public)")
+                self.ddcValues[id] = nil // re-read on the next refresh
+                self.refresh()
+            }
+        }
+    }
+
     // MARK: Combined brightness
 
     private func combinedLevel(of id: CGDirectDisplayID, hardware: VCPValue?) -> Double {

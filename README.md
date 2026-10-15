@@ -98,6 +98,8 @@ Click the monitor-and-switch icon in the menu bar.
   itself. The first time a monitor doesn't answer DDC/CI it switches to
   disconnecting and remembers that.
 - **Switch Off While Locked or Asleep**.
+- **Restore Factory Brightness & Contrast** (DDC/CI monitors): asks the
+  monitor to restore its own factory brightness and contrast.
 
 ### Keyboard keys
 
