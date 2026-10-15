@@ -14,10 +14,8 @@ Switchboard gives every external screen a **switch** and a set of **faders**:
 
 - **Switch screens off and on.** Monitors that support DDC/CI go into
   hardware standby. Monitors that don't (common on portable monitors) are
-  either **blacked out** instantly, if they mirror another screen, or
-  **disconnected** in software, as if the cable were pulled. Blacking out
-  keeps macOS from rebuilding the mirror set, so the other screen doesn't
-  blank.
+  disconnected in software, as if the cable were pulled, and reconnected when
+  you switch them back on. You can choose **Black Out** for a screen instead.
 - **Combined brightness.** One brightness slider per screen: the monitor's
   real backlight over DDC/CI, continuing below its minimum with software
   dimming. Monitors without DDC/CI are dimmed in software. An **All Screens**
@@ -109,9 +107,9 @@ Click the monitor-and-switch icon in the menu bar.
     Any screen it mirrors, or that mirrors it, blanks briefly while macOS
     reconfigures.
 
-  The first time a monitor doesn't answer DDC/CI, Switchboard blacks it out
-  if it's part of a mirror set and disconnects it otherwise, and remembers
-  that choice.
+  The first time a monitor doesn't answer DDC/CI, Switchboard switches it to
+  disconnecting and remembers that. It only blacks a screen out if you choose
+  that.
 - **Switch Off While Locked or Asleep**.
 - **Restore Factory Brightness & Contrast** (DDC/CI monitors): asks the
   monitor to restore its own factory brightness and contrast.

@@ -237,15 +237,15 @@ final class DisplayController: ObservableObject {
                 intents[id] = false
                 return
             }
-            // No answer over DDC/CI (unsupported or disabled on the monitor).
-            // A mirrored screen is blacked out, so its source doesn't blank
-            // while macOS rebuilds the mirror set; others are disconnected.
-            method = isMirrored(id) ? .blackout : .disconnect
-            Log.display.notice("\(identity.name, privacy: .public) did not answer DDC/CI; switching it off by \(String(describing: method), privacy: .public)")
+            // No answer over DDC/CI (unsupported or disabled on the monitor):
+            // switch it off by disconnecting, now and from now on.
+            method = .disconnect
+            Log.display.notice("\(identity.name, privacy: .public) did not answer DDC/CI; switching it off by disconnecting")
             Preferences.setOffMethod(method, for: key, automatic: true)
-        } else if method == .disconnect, Preferences.offMethodIsAutomatic(for: key), isMirrored(id) {
-            // Chosen automatically before mirroring was taken into account.
-            method = .blackout
+        } else if method == .blackout, Preferences.offMethodIsAutomatic(for: key) {
+            // An earlier version picked Black Out on its own. Only a user's
+            // explicit choice should black a screen out.
+            method = .disconnect
             Preferences.setOffMethod(method, for: key, automatic: true)
         }
 
@@ -258,11 +258,6 @@ final class DisplayController: ObservableObject {
         case .disconnect, .standby:
             disconnect(identity)
         }
-    }
-
-    /// Whether the screen mirrors another or is mirrored to one.
-    private func isMirrored(_ id: CGDirectDisplayID) -> Bool {
-        CGDisplayMirrorsDisplay(id) != 0 || Displays.online().contains { CGDisplayMirrorsDisplay($0) == id }
     }
 
     /// Turn the screen's picture black. Fails (and undoes it) if another
