@@ -7,6 +7,10 @@ enum OffMethod: String, Hashable {
     case standby
     /// Software disconnect: macOS stops using the monitor (see SoftwareDisconnect).
     case disconnect
+    /// Black out: the screen's picture is turned black through its gamma
+    /// table. Instant, and macOS doesn't reconfigure displays, so a mirrored
+    /// screen's source doesn't blank. The backlight stays on.
+    case blackout
 }
 
 /// Per-monitor and app settings, remembered across launches. Monitors are
@@ -15,6 +19,7 @@ enum OffMethod: String, Hashable {
 enum Preferences {
     private static let defaults = UserDefaults.standard
     private static let offMethodKey = "offMethod"
+    private static let offMethodAutomaticKey = "offMethodAutomatic"
     private static let switchVisibleKey = "switchVisible"
     private static let autoOffKey = "autoOffWhenLockedOrAsleep"
     static let disconnectedKey = "disconnectedDisplayIDs"
@@ -27,8 +32,15 @@ enum Preferences {
         return stored.flatMap(OffMethod.init(rawValue:)) ?? .standby
     }
 
-    static func setOffMethod(_ method: OffMethod, for monitor: String) {
+    /// `automatic`: Switchboard picked the method (and may pick a better one
+    /// later) rather than the user.
+    static func setOffMethod(_ method: OffMethod, for monitor: String, automatic: Bool = false) {
         set(method.rawValue, for: monitor, in: offMethodKey)
+        set(automatic, for: monitor, in: offMethodAutomaticKey)
+    }
+
+    static func offMethodIsAutomatic(for monitor: String) -> Bool {
+        defaults.dictionary(forKey: offMethodAutomaticKey)?[monitor] as? Bool ?? true
     }
 
     /// Nil when the user hasn't chosen; the caller picks the default.
@@ -97,7 +109,7 @@ enum Preferences {
 
     /// Forget every setting (Reset to Defaults).
     static func resetAll() {
-        for key in [offMethodKey, switchVisibleKey, autoOffKey, disconnectedKey, brightnessKeysKey,
+        for key in [offMethodKey, offMethodAutomaticKey, switchVisibleKey, autoOffKey, disconnectedKey, brightnessKeysKey,
                     followAppearanceKey, appearanceBrightnessKey] {
             defaults.removeObject(forKey: key)
         }

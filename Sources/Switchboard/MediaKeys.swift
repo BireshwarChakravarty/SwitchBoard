@@ -24,6 +24,9 @@ final class MediaKeys {
     /// Called on each press (and auto-repeat, except for mute). `fine` is
     /// true with ⇧⌥ held, for quarter steps.
     var onPress: (@MainActor (_ key: MediaKey, _ fine: Bool, _ displayID: CGDirectDisplayID) -> Void)?
+    /// Called for every media-key press the tap sees, with its raw key code
+    /// (nil `key` for keys Switchboard doesn't use), for the status line.
+    var onSeen: (@MainActor (_ key: MediaKey?, _ code: Int) -> Void)?
 
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
@@ -43,8 +46,11 @@ final class MediaKeys {
     @discardableResult
     func start() -> Bool {
         guard tap == nil else { return true }
-        // NX_SYSDEFINED (14) carries the media, volume and brightness keys.
+        // NX_SYSDEFINED (14) carries the media, volume and brightness keys;
+        // key down/up catch F14/F15, which are brightness keys on some keyboards.
         let mask = CGEventMask(1 << 14)
+            | CGEventMask(1 << CGEventType.keyDown.rawValue)
+            | CGEventMask(1 << CGEventType.keyUp.rawValue)
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
@@ -89,24 +95,12 @@ final class MediaKeys {
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return false
         }
-        // 14 = NX_SYSDEFINED; subtype 8 = auxiliary control buttons.
-        guard type.rawValue == 14,
-              let nsEvent = NSEvent(cgEvent: event),
-              nsEvent.subtype.rawValue == 8 else { return false }
-
-        let data = nsEvent.data1
-        let keyCode = (data & 0xFFFF_0000) >> 16
-        let isKeyDown = ((data & 0xFF00) >> 8) == 0x0A
-        let isRepeat = (data & 0x1) != 0
-        let key: MediaKey
-        switch keyCode {
-        case 0: key = .volumeUp        // NX_KEYTYPE_SOUND_UP
-        case 1: key = .volumeDown      // NX_KEYTYPE_SOUND_DOWN
-        case 2: key = .brightnessUp    // NX_KEYTYPE_BRIGHTNESS_UP
-        case 3: key = .brightnessDown  // NX_KEYTYPE_BRIGHTNESS_DOWN
-        case 7: key = .mute            // NX_KEYTYPE_MUTE
-        default: return false          // play/pause etc.: leave to macOS
+        guard let press = Self.decode(type: type, event: event) else { return false }
+        let key = press.key
+        if press.isKeyDown && !press.isRepeat {
+            onSeen?(key, press.code)
         }
+        guard let key else { return false }
 
         let displayID = Self.displayUnderPointer() ?? CGMainDisplayID()
         guard canHandle?(key, displayID) == true else {
@@ -115,12 +109,60 @@ final class MediaKeys {
             }
             return false
         }
-        if isKeyDown && !(key == .mute && isRepeat) {
-            let fine = nsEvent.modifierFlags.contains([.shift, .option])
-            Log.app.debug("Key \(String(describing: key), privacy: .public)\(fine ? " (fine)" : "", privacy: .public) on display \(displayID)")
-            onPress?(key, fine, displayID)
+        if press.isKeyDown && !(key == .mute && press.isRepeat) {
+            Log.app.debug("Key \(String(describing: key), privacy: .public)\(press.fine ? " (fine)" : "", privacy: .public) on display \(displayID)")
+            onPress?(key, press.fine, displayID)
         }
         return true // swallow key-down and key-up alike, so macOS shows no "not supported" HUD
+    }
+
+    private struct Press {
+        let key: MediaKey?
+        let code: Int
+        let isKeyDown: Bool
+        let isRepeat: Bool
+        let fine: Bool
+    }
+
+    /// Decode a media-key event (NX_SYSDEFINED) or an F14/F15 key event.
+    /// Returns nil for anything else, which passes straight through.
+    private static func decode(type: CGEventType, event: CGEvent) -> Press? {
+        if type == .keyDown || type == .keyUp {
+            let code = Int(event.getIntegerValueField(.keyboardEventKeycode))
+            let key: MediaKey
+            switch code {
+            case 107: key = .brightnessDown  // F14
+            case 113: key = .brightnessUp    // F15
+            default: return nil
+            }
+            return Press(
+                key: key, code: code, isKeyDown: type == .keyDown,
+                isRepeat: event.getIntegerValueField(.keyboardEventAutorepeat) != 0,
+                fine: event.flags.contains([.maskShift, .maskAlternate])
+            )
+        }
+
+        // 14 = NX_SYSDEFINED; subtype 8 = auxiliary control buttons.
+        guard type.rawValue == 14,
+              let nsEvent = NSEvent(cgEvent: event),
+              nsEvent.subtype.rawValue == 8 else { return nil }
+        let data = nsEvent.data1
+        let code = (data & 0xFFFF_0000) >> 16
+        let key: MediaKey?
+        switch code {
+        case 0: key = .volumeUp        // NX_KEYTYPE_SOUND_UP
+        case 1: key = .volumeDown      // NX_KEYTYPE_SOUND_DOWN
+        case 2: key = .brightnessUp    // NX_KEYTYPE_BRIGHTNESS_UP
+        case 3: key = .brightnessDown  // NX_KEYTYPE_BRIGHTNESS_DOWN
+        case 7: key = .mute            // NX_KEYTYPE_MUTE
+        default: key = nil             // play/pause etc.: leave to macOS
+        }
+        return Press(
+            key: key, code: code,
+            isKeyDown: ((data & 0xFF00) >> 8) == 0x0A,
+            isRepeat: (data & 0x1) != 0,
+            fine: nsEvent.modifierFlags.contains([.shift, .option])
+        )
     }
 
     private static func displayUnderPointer() -> CGDirectDisplayID? {

@@ -114,6 +114,17 @@ struct MenuContent: View {
                     set: { controller.setBrightnessKeysEnabled($0) }
                 )
             )
+            if let status = controller.keysStatus, !controller.brightnessKeysNeedPermission {
+                Text(status)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, 58)
+                    .padding(.trailing, 14)
+                    .padding(.bottom, 8)
+                    .contentTransition(.opacity)
+            }
             if controller.brightnessKeysNeedPermission {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -396,6 +407,7 @@ struct DisplayRow: View {
                 set: { controller.setOffMethod($0, for: display.id) }
             )) {
                 Text("DDC/CI Standby").tag(OffMethod.standby)
+                Text("Blacking Out (instant)").tag(OffMethod.blackout)
                 Text("Disconnecting").tag(OffMethod.disconnect)
             }
             Toggle("Switch Off While Locked or Asleep", isOn: Binding(
@@ -415,7 +427,11 @@ struct DisplayRow: View {
     private var subtitle: String? {
         var parts: [String] = []
         if !display.isOn {
-            parts.append(display.offMethod == .disconnect ? "Disconnected" : "Standby")
+            switch display.offMethod {
+            case .standby: parts.append("Standby")
+            case .disconnect: parts.append("Disconnected")
+            case .blackout: parts.append("Blacked out")
+            }
         } else if let mirrorNote = display.mirrorNote {
             parts.append(mirrorNote)
         }

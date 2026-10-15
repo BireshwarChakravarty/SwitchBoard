@@ -49,6 +49,9 @@ final class DisplayController: ObservableObject {
     @Published private(set) var brightnessKeysEnabled = Preferences.brightnessKeysEnabled
     /// Brightness keys are on but macOS hasn't granted Accessibility yet.
     @Published private(set) var brightnessKeysNeedPermission = false
+    /// What the keyboard keys are doing, shown under Keyboard Keys, e.g.
+    /// "Listening · press a brightness key" or "Brightness Up → XV272K · 65%".
+    @Published private(set) var keysStatus: String?
     /// Brightness follows Light/Dark mode (see Preferences.brightnessFollowsAppearance).
     @Published private(set) var brightnessFollowsAppearance = Preferences.brightnessFollowsAppearance
     /// Reset to Defaults was clicked and awaits confirmation.
@@ -102,6 +105,7 @@ final class DisplayController: ObservableObject {
         reconnectAll()
         keys.canHandle = { [weak self] key, id in self?.canHandle(key, on: id) ?? false }
         keys.onPress = { [weak self] key, fine, id in self?.handle(key, fine: fine, on: id) }
+        keys.onSeen = { [weak self] key, code in self?.keySeen(key, code: code) }
         refresh()
         CGDisplayRegisterReconfigurationCallback({ _, _, userInfo in
             guard let userInfo else { return }
@@ -193,7 +197,7 @@ final class DisplayController: ObservableObject {
         display.showsSwitch = Preferences.switchVisible(for: key) ?? true
         display.autoOff = Preferences.autoOff(for: key)
 
-        if display.offMethod == .disconnect {
+        if display.offMethod != .standby {
             // No DDC/CI on this monitor: software dimming only.
             display.combinedBrightness = combinedLevel(of: id, hardware: nil)
         } else if let values = ddcValues[id] {
@@ -226,22 +230,63 @@ final class DisplayController: ObservableObject {
 
     private func switchOff(_ identity: DisplayIdentity) {
         let id = identity.id
-        if Preferences.offMethod(for: identity.key) == .standby {
+        let key = identity.key
+        var method = Preferences.offMethod(for: key)
+        if method == .standby {
             if ddcSync({ $0.setPower(.standby, for: identity) }) {
                 intents[id] = false
                 return
             }
-            // No answer over DDC/CI (unsupported or disabled on the monitor):
-            // switch this monitor off by disconnecting it, now and from now on.
-            Log.display.notice("\(identity.name, privacy: .public) did not answer DDC/CI; switching it off by disconnecting")
-            Preferences.setOffMethod(.disconnect, for: identity.key)
+            // No answer over DDC/CI (unsupported or disabled on the monitor).
+            // A mirrored screen is blacked out, so its source doesn't blank
+            // while macOS rebuilds the mirror set; others are disconnected.
+            method = isMirrored(id) ? .blackout : .disconnect
+            Log.display.notice("\(identity.name, privacy: .public) did not answer DDC/CI; switching it off by \(String(describing: method), privacy: .public)")
+            Preferences.setOffMethod(method, for: key, automatic: true)
+        } else if method == .disconnect, Preferences.offMethodIsAutomatic(for: key), isMirrored(id) {
+            // Chosen automatically before mirroring was taken into account.
+            method = .blackout
+            Preferences.setOffMethod(method, for: key, automatic: true)
         }
-        disconnect(identity)
+
+        switch method {
+        case .blackout:
+            if !blackOut(identity) {
+                Preferences.setOffMethod(.disconnect, for: key, automatic: true)
+                disconnect(identity)
+            }
+        case .disconnect, .standby:
+            disconnect(identity)
+        }
+    }
+
+    /// Whether the screen mirrors another or is mirrored to one.
+    private func isMirrored(_ id: CGDirectDisplayID) -> Bool {
+        CGDisplayMirrorsDisplay(id) != 0 || Displays.online().contains { CGDisplayMirrorsDisplay($0) == id }
+    }
+
+    /// Turn the screen's picture black. Fails (and undoes it) if another
+    /// screen went black too, which happens when screens share a gamma table.
+    private func blackOut(_ identity: DisplayIdentity) -> Bool {
+        let id = identity.id
+        let others = Displays.online().filter { $0 != id && !dimmer.isBlackedOut($0) }
+        let alreadyBlack = Set(others.filter { SoftwareDimmer.looksBlack($0) })
+        dimmer.setBlackedOut(true, for: id)
+        if others.contains(where: { !alreadyBlack.contains($0) && SoftwareDimmer.looksBlack($0) }) {
+            Log.display.notice("Blacking out \(identity.name, privacy: .public) also blacked out another screen; disconnecting instead")
+            dimmer.setBlackedOut(false, for: id)
+            return false
+        }
+        intents[id] = false
+        return true
     }
 
     private func switchOn(_ identity: DisplayIdentity) {
         let id = identity.id
-        if Preferences.disconnectedDisplays.contains(id) {
+        if dimmer.isBlackedOut(id) {
+            dimmer.setBlackedOut(false, for: id)
+            intents[id] = true
+        } else if Preferences.disconnectedDisplays.contains(id) {
             if SoftwareDisconnect.setEnabled(true, displayID: id) {
                 Preferences.disconnectedDisplays.remove(id)
                 intents[id] = true
@@ -506,6 +551,11 @@ final class DisplayController: ObservableObject {
         }
         let waiting = brightnessKeysEnabled && !keys.isRunning
         if brightnessKeysNeedPermission != waiting { brightnessKeysNeedPermission = waiting }
+        if !keys.isRunning {
+            keysStatus = nil
+        } else if keysStatus == nil {
+            keysStatus = "Listening · press a brightness key"
+        }
         if waiting, permissionTimer == nil {
             permissionTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.syncBrightnessKeys() }
@@ -517,7 +567,35 @@ final class DisplayController: ObservableObject {
     }
 
     private func canHandle(_ key: MediaKey, on id: CGDirectDisplayID) -> Bool {
-        key.isBrightness ? !brightnessTargets(for: id).isEmpty : volumeTarget() != nil
+        if key.isBrightness {
+            if brightnessTargets(for: id).isEmpty {
+                keysStatus = "\(Self.title(of: key)) received, but no screen can be adjusted yet"
+                return false
+            }
+            return true
+        }
+        return volumeTarget() != nil
+    }
+
+    /// Every media-key press the tap sees, for the status line.
+    private func keySeen(_ key: MediaKey?, code: Int) {
+        guard let key else {
+            keysStatus = "Received media key \(code), which Switchboard doesn't use"
+            return
+        }
+        if !key.isBrightness && volumeTarget() == nil {
+            keysStatus = "\(Self.title(of: key)) left to macOS (sound isn't on monitor speakers)"
+        }
+    }
+
+    private static func title(of key: MediaKey) -> String {
+        switch key {
+        case .brightnessUp: "Brightness Up"
+        case .brightnessDown: "Brightness Down"
+        case .volumeUp: "Volume Up"
+        case .volumeDown: "Volume Down"
+        case .mute: "Mute"
+        }
     }
 
     private func handle(_ key: MediaKey, fine: Bool, on id: CGDirectDisplayID) {
@@ -557,6 +635,8 @@ final class DisplayController: ObservableObject {
             setBrightness(level, for: display.id)
         }
         hud.show(symbol: level < 0.01 ? "sun.min" : "sun.max.fill", level: level, on: first.id)
+        let names = targets.map(\.name).joined(separator: " + ")
+        keysStatus = "\(Self.title(of: up ? .brightnessUp : .brightnessDown)) → \(names) · \(Int((level * 100).rounded()))%"
     }
 
     /// The monitor whose speakers are the current sound output, when macOS
@@ -592,6 +672,7 @@ final class DisplayController: ObservableObject {
             : level < 0.34 ? "speaker.wave.1.fill"
             : level < 0.67 ? "speaker.wave.2.fill" : "speaker.wave.3.fill"
         hud.show(symbol: symbol, level: level, on: id)
+        keysStatus = "\(Self.title(of: key)) → \(display.name) · \(Int((level * 100).rounded()))%"
     }
 
     // MARK: Lock / sleep automation

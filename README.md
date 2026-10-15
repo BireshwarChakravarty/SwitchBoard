@@ -14,8 +14,10 @@ Switchboard gives every external screen a **switch** and a set of **faders**:
 
 - **Switch screens off and on.** Monitors that support DDC/CI go into
   hardware standby. Monitors that don't (common on portable monitors) are
-  disconnected in software, as if the cable were pulled, and reconnected when
-  you switch them back on.
+  either **blacked out** instantly, if they mirror another screen, or
+  **disconnected** in software, as if the cable were pulled. Blacking out
+  keeps macOS from rebuilding the mirror set, so the other screen doesn't
+  blank.
 - **Combined brightness.** One brightness slider per screen: the monitor's
   real backlight over DDC/CI, continuing below its minimum with software
   dimming. Monitors without DDC/CI are dimmed in software. An **All Screens**
@@ -98,9 +100,18 @@ Click the monitor-and-switch icon in the menu bar.
 **Right-click a screen** for its options:
 
 - **Hide Switch / Show Switch**: hide the switch of a screen you never turn off.
-- **Switch Off By → DDC/CI Standby / Disconnecting**: Switchboard picks this
-  itself. The first time a monitor doesn't answer DDC/CI it switches to
-  disconnecting and remembers that.
+- **Switch Off By**: Switchboard picks this itself, but you can override it.
+  - **DDC/CI Standby**: the monitor sleeps (needs DDC/CI).
+  - **Blacking Out (instant)**: the picture goes black and the backlight stays
+    on. Nothing else on screen changes, so mirrors don't make other screens
+    blank.
+  - **Disconnecting**: macOS stops using the screen and windows move off it.
+    Any screen it mirrors, or that mirrors it, blanks briefly while macOS
+    reconfigures.
+
+  The first time a monitor doesn't answer DDC/CI, Switchboard blacks it out
+  if it's part of a mirror set and disconnects it otherwise, and remembers
+  that choice.
 - **Switch Off While Locked or Asleep**.
 - **Restore Factory Brightness & Contrast** (DDC/CI monitors): asks the
   monitor to restore its own factory brightness and contrast.
@@ -119,6 +130,10 @@ The keys start working within a couple of seconds, with no relaunch needed.
 Until then the Keyboard Keys row shows **Needs Accessibility access**, with a
 button straight to that setting.
 
+- The line under **Keyboard Keys** shows what's happening, for example
+  "Listening · press a brightness key" or "Brightness Up → XV272K V5 · 65%".
+  It also shows when a key arrives but there's nothing to adjust.
+- Brightness keys that arrive as **F14/F15** (as on some keyboards) work too.
 - Each press moves brightness one of 16 steps, like a built-in screen; hold
   **⇧⌥** for 64 finer steps. A brightness indicator appears at the top right.
 - Keys adjust the monitor under the pointer, together with any screen
@@ -142,6 +157,7 @@ the old permission, so grant it again when asked.
 | Brightness / contrast / volume | DDC/CI VCP `0x10` / `0x12` / `0x62`, read with *Get VCP Feature* |
 | DDC transport | `IOAVService` I²C on Apple Silicon (private IOKit symbols), matched to each screen through the IORegistry and its EDID |
 | Disconnect | `CGSConfigureDisplayEnabled` (undocumented), applied for the login session only |
+| Black out | The screen's gamma table scaled to zero, with a check that no other screen went black with it |
 | Dimming | Display gamma tables (`CGSetDisplayTransferByTable`), below the hardware minimum for DDC/CI monitors |
 | Resolution | `CGDisplayCopyAllDisplayModes` scaled modes, applied with `CGConfigureDisplayWithDisplayMode` |
 | Monitor speakers | Core Audio detects HDMI/DisplayPort output without volume control; volume is set over DDC/CI |
