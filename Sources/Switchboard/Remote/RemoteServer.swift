@@ -97,7 +97,7 @@ final class RemoteServer: @unchecked Sendable {
         let handler = self.handler
         Task {
             var response = await handler(request)
-            if request.method == "HEAD" { response.body = Data() }
+            response.omitsBody = request.method == "HEAD"
             self.queue.async { self.send(response, on: connection) }
         }
     }

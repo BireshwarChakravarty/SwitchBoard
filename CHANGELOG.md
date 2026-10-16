@@ -6,6 +6,11 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- The remote's icon can be cached, so Safari keeps it for the Home Screen.
+- Replies to `HEAD` requests report the real size of what `GET` returns,
+  instead of zero.
+
 ## [2.0.3] - 2026-10-17
 
 ### Fixed

@@ -75,6 +75,11 @@ struct HTTPResponse: Sendable {
     var status: Int
     var contentType: String
     var body: Data
+    /// API replies must never be cached; static files like the icon may be.
+    var cacheControl = "no-store"
+    /// A reply to HEAD: the same headers, including the body's length, but
+    /// no body.
+    var omitsBody = false
     var extraHeaders: [String: String] = [:]
 
     static func json<T: Encodable>(_ value: T, status: Int = 200) -> HTTPResponse {
@@ -94,14 +99,14 @@ struct HTTPResponse: Sendable {
         var head = "HTTP/1.1 \(status) \(Self.reason(for: status))\r\n"
         head += "Content-Type: \(contentType)\r\n"
         head += "Content-Length: \(body.count)\r\n"
-        head += "Cache-Control: no-store\r\n"
+        head += "Cache-Control: \(cacheControl)\r\n"
         head += "X-Content-Type-Options: nosniff\r\n"
         head += "Connection: close\r\n"
         for (name, value) in extraHeaders.sorted(by: { $0.key < $1.key }) {
             head += "\(name): \(value)\r\n"
         }
         head += "\r\n"
-        return Data(head.utf8) + body
+        return omitsBody ? Data(head.utf8) : Data(head.utf8) + body
     }
 
     static func reason(for status: Int) -> String {

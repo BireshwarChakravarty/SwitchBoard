@@ -45,5 +45,17 @@ final class RemoteHTTPTests: XCTestCase {
         XCTAssertTrue(text.contains("Content-Length: 33\r\n"))
         XCTAssertTrue(text.contains("Connection: close\r\n"))
         XCTAssertTrue(text.hasSuffix("\r\n\r\n{\"error\":\"Nope\",\"message\":\"Nope\"}"))
+        XCTAssertTrue(text.contains("Cache-Control: no-store\r\n"))
+    }
+
+    /// HEAD gets the GET reply's headers, including its real length, and no body.
+    func testHeadKeepsContentLength() {
+        var response = HTTPResponse(status: 200, contentType: "image/png", body: Data(count: 24),
+                                    cacheControl: "public, max-age=86400")
+        response.omitsBody = true
+        let text = String(decoding: response.serialized, as: UTF8.self)
+        XCTAssertTrue(text.contains("Content-Length: 24\r\n"))
+        XCTAssertTrue(text.contains("Cache-Control: public, max-age=86400\r\n"))
+        XCTAssertTrue(text.hasSuffix("\r\n\r\n"))
     }
 }

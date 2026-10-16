@@ -234,7 +234,9 @@ final class RemoteControl: ObservableObject {
         case .manifest:
             return HTTPResponse(status: 200, contentType: "application/manifest+json", body: Data(RemotePage.manifest.utf8))
         case .icon:
-            return HTTPResponse(status: 200, contentType: "image/png", body: icon())
+            // Cacheable, so Safari can keep it for the Home Screen.
+            return HTTPResponse(status: 200, contentType: "image/png", body: icon(),
+                                cacheControl: "public, max-age=86400")
         case .state:
             return .json(state(of: controller))
         case .pair:
