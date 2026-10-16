@@ -21,7 +21,10 @@ enum Preferences {
     static let disconnectedKey = "disconnectedDisplayIDs"
     private static let brightnessKeysKey = "brightnessKeysEnabled"
     private static let followAppearanceKey = "brightnessFollowsAppearance"
+    /// Left by 1.0.2 and earlier; only removed now.
     private static let factoryResetUnsupportedKey = "factoryResetUnsupported"
+    private static let promptedAccessibilityKey = "promptedForAccessibility"
+    private static let promptedInputMonitoringKey = "promptedForInputMonitoring"
     private static let appearanceBrightnessKey = "appearanceBrightness"
 
     static func offMethod(for monitor: String) -> OffMethod {
@@ -59,20 +62,22 @@ enum Preferences {
         set(enabled, for: monitor, in: autoOffKey)
     }
 
+    /// macOS's permission prompts were shown once already; never again.
+    /// Kept by Reset to Defaults: permissions outlive Switchboard's settings.
+    static var didPromptForAccessibility: Bool {
+        get { defaults.bool(forKey: promptedAccessibilityKey) }
+        set { defaults.set(newValue, forKey: promptedAccessibilityKey) }
+    }
+
+    static var didPromptForInputMonitoring: Bool {
+        get { defaults.bool(forKey: promptedInputMonitoringKey) }
+        set { defaults.set(newValue, forKey: promptedInputMonitoringKey) }
+    }
+
     static var brightnessKeysEnabled: Bool {
         // On unless turned off: on a Mac mini the keys do nothing otherwise.
         get { defaults.object(forKey: brightnessKeysKey) as? Bool ?? true }
         set { defaults.set(newValue, forKey: brightnessKeysKey) }
-    }
-
-    /// The monitor ignored DDC/CI's factory-reset commands, so the app offers
-    /// a typical default instead.
-    static func factoryResetUnsupported(for monitor: String) -> Bool {
-        defaults.dictionary(forKey: factoryResetUnsupportedKey)?[monitor] as? Bool ?? false
-    }
-
-    static func setFactoryResetUnsupported(_ unsupported: Bool, for monitor: String) {
-        set(unsupported, for: monitor, in: factoryResetUnsupportedKey)
     }
 
     /// Each screen remembers one brightness for Light mode and one for Dark

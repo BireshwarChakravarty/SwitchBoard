@@ -24,8 +24,8 @@ Macs running macOS 26 or later.
   an All Screens brightness slider.
 - Brightness keys for external displays, including Apple keyboards, and volume
   keys for monitor speakers.
-- Match Light & Dark Mode, switch off while locked, and restore a monitor's
-  factory settings.
+- Match Light & Dark Mode, switch off while locked, and one Reset to Defaults
+  for everything.
 
 See the [README](https://github.com/BireshwarChakravarty/SwitchBoard#readme)
 for details and the [changelog](https://github.com/BireshwarChakravarty/SwitchBoard/blob/main/CHANGELOG.md)

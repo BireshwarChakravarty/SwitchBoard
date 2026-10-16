@@ -1,6 +1,7 @@
 #!/bin/bash
 # Builds Switchboard.app and does a clean install into /Applications:
-#   1. builds a release binary and wraps it in Switchboard.app (ad-hoc signed)
+#   1. builds a release binary and wraps it in Switchboard.app (ad-hoc signed,
+#      with a stable identity so permissions survive updates)
 #   2. quits any running copy, including earlier names of this app
 #      (DisplayToggle, Display Control, Dimmer)
 #   3. undoes what those copies did to your screens: reconnects screens they
@@ -35,7 +36,13 @@ mkdir -p "$STAGE/Contents/MacOS" "$STAGE/Contents/Resources"
 cp "$(swift build -c release --show-bin-path)/Switchboard" "$STAGE/Contents/MacOS/Switchboard"
 cp Resources/Info.plist "$STAGE/Contents/Info.plist"
 cp Resources/AppIcon.icns "$STAGE/Contents/Resources/AppIcon.icns"
-codesign --force --sign - "$STAGE"
+# Ad-hoc signing normally ties macOS privacy permissions (Input Monitoring,
+# Accessibility) to this exact build, so every update would lose them. A
+# designated requirement naming only the bundle identifier lets them carry
+# over from one version to the next.
+BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' Resources/Info.plist)"
+codesign --force --sign - --requirements "=designated => identifier \"$BUNDLE_ID\"" "$STAGE"
+codesign --display --requirements - "$STAGE" 2>&1 | grep designated
 
 if $PACKAGE_ONLY; then
     echo "==> Packaging dist/Switchboard.zip"

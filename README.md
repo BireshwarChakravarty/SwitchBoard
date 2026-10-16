@@ -62,7 +62,8 @@ dependencies and makes no network connections.
 - **All Screens:** one brightness slider for every display at once.
 - **Match Light & Dark Mode:** each screen remembers a brightness for each
   appearance and switches automatically.
-- Restore a monitor's factory picture settings.
+- **Reset to Defaults** in Settings puts everything back, including each
+  monitor's contrast.
 
 **Keyboard**
 - Brightness keys adjust the screen under the pointer, together with any screen
@@ -132,8 +133,8 @@ permissions.
 | **Screens** | Every connected screen, with its status (for example *Mirrored to …* or *Disconnected*) and a power switch. Click a screen to show its controls. |
 | **Selected screen** | Brightness, Contrast, Volume and Resolution sliders, with live values. The **⋯** button shows that screen's options in the card. |
 | **Brightness · All Screens** | One slider for every screen. Shown when two or more screens can be adjusted. |
-| **Settings** | Keyboard Keys, Match Light & Dark Mode, and Start at Login. |
-| **Footer** | Reset to Defaults, Refresh Screens, and Quit. |
+| **Settings** | Keyboard Keys, Match Light & Dark Mode, Start at Login, and Reset to Defaults. |
+| **Footer** | The version, and Quit. |
 
 The last screen that's still on has no power switch, so you can never switch
 every screen off at once.
@@ -148,14 +149,16 @@ or by right-clicking a screen in the list.
 | **Switch Off By** | How the screen is switched off: **DDC/CI Standby** (the monitor sleeps) or **Disconnecting** (macOS stops using the screen, as if its cable were unplugged). Switchboard chooses automatically: the first time a monitor doesn't respond to DDC/CI, it switches to disconnecting and remembers the choice. |
 | **Switch Off While Locked or Asleep** | Switches the screen off when the Mac locks or sleeps, and back on when you unlock it. |
 | **Hide power switch** | Removes the switch for a screen you never turn off. |
-| **Restore Brightness & Contrast** | Asks the monitor to restore its factory brightness and contrast. |
-| **Restore All Settings** | Asks the monitor to reset everything, like the Reset option in its own menu. |
 
-Both factory commands are optional in the DDC/CI standard. Switchboard reads
-the monitor's settings back afterwards and shows the result under the screen's
-name: the restored values, or that the monitor ignored the request. If a
-monitor ignores **Restore All Settings**, Switchboard stops offering resets for
-it and offers **Set Contrast to 50%**, the usual factory contrast, instead.
+### Reset to Defaults
+
+**Settings → Reset to Defaults** reconnects every screen, wakes monitors from
+standby, removes software dimming, sets each DDC/CI monitor's contrast to 50%
+(the usual factory value) and forgets all of Switchboard's settings.
+
+DDC/CI does define factory-reset commands, but they're optional and many
+monitors ignore them, so Switchboard doesn't offer them. To reset everything
+on a monitor, use the Reset option in its own on-screen menu.
 
 ### Keyboard keys
 
@@ -180,7 +183,6 @@ alongside Switchboard's. Reading the keyboard directly can't suppress it.
 |---|---|
 | Standby and wake | DDC/CI *Set VCP Feature* `0xD6` (power mode): `0x05` standby, `0x01` on |
 | Brightness, contrast, volume | DDC/CI VCP `0x10`, `0x12` and `0x62`, read back with *Get VCP Feature* |
-| Factory reset | DDC/CI VCP `0x06` (brightness and contrast) and `0x04` (all settings) |
 | DDC/CI transport | I²C through `IOAVService` (private IOKit symbols on Apple Silicon), matched to each screen through the IORegistry and its EDID |
 | Software disconnect | `CGSConfigureDisplayEnabled` (undocumented), applied for the app only. Other screens don't blank, and macOS reconnects the screen when the app quits. |
 | Software dimming | Display gamma tables (`CGSetDisplayTransferByTable`) |
@@ -204,7 +206,8 @@ The DDC/CI approach on Apple Silicon follows the open-source
   quits, even if it crashes. Software dimming is undone the same way. The last
   screen that's still on can't be switched off.
 - **Reversible.** **Reset to Defaults** reconnects every screen, removes
-  dimming, wakes monitors from standby and clears all settings.
+  dimming, wakes monitors from standby, sets contrast to 50% and clears all
+  settings.
 - **Undocumented interfaces.** DDC/CI on Apple Silicon and the software
   disconnect use private macOS functions. A future macOS update could change
   them, in which case those features stop working; the rest of the app is
@@ -221,7 +224,7 @@ log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"
 
 | Problem | What to do |
 |---|---|
-| Keyboard keys do nothing | Check **Settings → Keyboard Keys**. A permission notice there links to the right page. If you've updated the app, turn Switchboard off and on again in both permission lists. Quit other display utilities. |
+| Keyboard keys do nothing | Check **Settings → Keyboard Keys**. A permission notice there links to the right page. If you updated from 1.0.2 or earlier, remove Switchboard from both permission lists with **−** and allow it again; from 1.0.3 on, permissions carry over to updates. Quit other display utilities. |
 | *Not responding to DDC/CI* | Turn on DDC/CI in the monitor's own menu, or try another cable, port or adapter. Use **Switch Off By → Disconnecting** for monitors without DDC/CI. |
 | Only a *Brightness (Software)* slider | The monitor didn't answer DDC/CI read requests. Look for `No reply reading VCP` in the log. |
 | A control affects the wrong monitor | Each DDC/CI lookup logs every candidate port with its EDID UUID and match score. [Open an issue](https://github.com/BireshwarChakravarty/SwitchBoard/issues/new/choose) with those lines. |

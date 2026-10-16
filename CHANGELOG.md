@@ -6,6 +6,24 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-16
+
+### Fixed
+- Permissions no longer need granting again after every update, and macOS's
+  permission prompts appear once rather than on every launch. The app is
+  signed with a stable identity (its bundle identifier), so Input Monitoring
+  and Device Control access carry over to new versions. Updating from 1.0.2
+  or earlier needs one last re-grant.
+
+### Changed
+- **Reset to Defaults** moved into Settings, with inline confirmation, and
+  now also sets each DDC/CI monitor's contrast to 50%, the usual factory
+  value.
+- Removed the per-screen factory reset buttons. The DDC/CI factory-reset
+  commands are optional and many monitors ignore them.
+- Removed the Reset and Refresh buttons from the footer; Switchboard refreshes
+  by itself when screens change.
+
 ## [1.0.2] - 2026-10-16
 
 ### Fixed
@@ -58,7 +76,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/BireshwarChakravarty/SwitchBoard/releases/tag/v1.0.0

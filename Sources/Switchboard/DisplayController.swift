@@ -20,8 +20,6 @@ struct ManagedDisplay: Identifiable, Hashable {
     var autoOff = false
     /// Why the last attempt failed, shown under the name.
     var problem: String?
-    /// Neutral progress or result text (e.g. after a factory reset).
-    var notice: String?
     /// "Mirrored to <screen>" / "Mirror of <screen>".
     var mirrorNote: String?
     /// Hardware controls the monitor reported over DDC/CI (nil = unavailable).
@@ -81,16 +79,13 @@ final class DisplayController: ObservableObject {
     /// When each brightness key last stepped, so one press reported by two
     /// sources (event tap and keyboard reader) counts once.
     private var lastStep: [MediaKey: Date] = [:]
-    private var didPromptForInputMonitoring = false
     private let hud = LevelHUD()
     private var permissionTimer: Timer?
-    private var didPromptForAccessibility = false
 
     private var intents: [CGDirectDisplayID: Bool] = [:]
     /// Last identity seen for every external display, kept after it goes offline.
     private var identities: [CGDirectDisplayID: DisplayIdentity] = [:]
     private var problems: [CGDirectDisplayID: String] = [:]
-    private var notices: [CGDirectDisplayID: String] = [:]
     /// Names looked up from the IORegistry, for displays NSScreen doesn't name.
     private var registryNames: [CGDirectDisplayID: String] = [:]
 
@@ -247,7 +242,6 @@ final class DisplayController: ObservableObject {
             isOn: intents[id] ?? true // assume on until we switch it
         )
         display.problem = problems[id]
-        display.notice = notices[id]
         guard !isBuiltIn, let key = identities[id]?.key else { return display }
 
         display.offMethod = Preferences.offMethod(for: key)
@@ -422,84 +416,6 @@ final class DisplayController: ObservableObject {
         }
     }
 
-    /// Ask the monitor to restore its factory brightness and contrast (or,
-    /// with `everything`, all its factory settings), then read the values
-    /// back. Both commands are optional in the DDC/CI standard and some
-    /// monitors ignore them, so say so if nothing changed.
-    func restoreFactoryPicture(for id: CGDirectDisplayID, everything: Bool = false) {
-        guard let identity = identities[id] else {
-            Log.ddc.error("Factory restore: no identity for display \(id)")
-            return
-        }
-        let command = everything ? VCP.restoreFactoryDefaults : VCP.restoreFactoryLuminanceContrast
-        Log.ddc.info("Factory restore (0x\(String(format: "%02X", command), privacy: .public)) requested for \(identity.name, privacy: .public)")
-        problems[id] = nil
-        notices[id] = everything ? "Restoring all factory settings…" : "Restoring factory brightness & contrast…"
-        // Our software dimming sits on top of the hardware: clear it too.
-        dimmer.setLevel(1, for: id)
-        refresh()
-
-        let before = ddcValues[id] ?? [:]
-        let ddc = self.ddc
-        ddcQueue.async {
-            let sent = ddc.write(command, value: 1, for: identity)
-            // Give the monitor time to apply it before reading back.
-            Thread.sleep(forTimeInterval: 1.5)
-            var after: [UInt8: VCPValue] = [:]
-            if sent {
-                for vcp in [VCP.brightness, VCP.contrast, VCP.volume] {
-                    if let value = ddc.read(vcp, for: identity) { after[vcp] = value }
-                }
-            }
-            let result = after
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                let outcome = FactoryRestoreOutcome.evaluate(sent: sent, before: before, after: result)
-                Log.ddc.info("Factory restore on \(identity.name, privacy: .public): \(String(describing: outcome), privacy: .public)")
-                if everything, case .ignored = outcome {
-                    // The stronger command didn't work either: stop offering resets.
-                    Preferences.setFactoryResetUnsupported(true, for: identity.key)
-                }
-                let message = outcome.message
-                if message.isProblem {
-                    self.notices[id] = nil
-                    self.problems[id] = message.text
-                } else {
-                    self.notices[id] = message.text
-                    self.clearNotice(for: id, after: 8, ifStill: message.text)
-                }
-                if !result.isEmpty { self.ddcValues[id] = result }
-                self.refresh()
-            }
-        }
-    }
-
-    /// Whether this monitor ignored the factory-reset commands.
-    func isFactoryResetUnsupported(_ id: CGDirectDisplayID) -> Bool {
-        guard let key = identities[id]?.key else { return false }
-        return Preferences.factoryResetUnsupported(for: key)
-    }
-
-    /// The usual factory contrast, for monitors that can't reset themselves.
-    func setTypicalContrast(for id: CGDirectDisplayID) {
-        guard let contrast = ddcValues[id]?[VCP.contrast] else { return }
-        setVCP(VCP.contrast, to: UInt16((Double(contrast.max) / 2).rounded()), for: id)
-        problems[id] = nil
-        notices[id] = "Contrast set to 50%"
-        clearNotice(for: id, after: 6, ifStill: "Contrast set to 50%")
-        refresh()
-    }
-
-    /// Remove a notice after a while, unless something replaced it.
-    private func clearNotice(for id: CGDirectDisplayID, after seconds: Double, ifStill text: String) {
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            guard let self, self.notices[id] == text else { return }
-            self.notices[id] = nil
-            self.updateRow(id) { $0.notice = nil }
-        }
-    }
-
     // MARK: Combined brightness
 
     private func combinedLevel(of id: CGDirectDisplayID, hardware: VCPValue?) -> Double {
@@ -607,30 +523,28 @@ final class DisplayController: ObservableObject {
     func setBrightnessKeysEnabled(_ enabled: Bool) {
         Preferences.brightnessKeysEnabled = enabled
         brightnessKeysEnabled = enabled
-        if enabled && !MediaKeys.hasPermission {
-            MediaKeys.requestPermission()
-        }
         syncBrightnessKeys()
     }
 
-    /// Start or stop the key tap to match the setting. Until Accessibility is
-    /// granted the tap can't start: ask once per launch, then keep retrying
-    /// quietly every couple of seconds so the keys work as soon as it's granted.
+    /// Start or stop the key listeners to match the setting. Until permission
+    /// is granted they can't start: macOS's prompt is shown once ever (not on
+    /// every launch), then Switchboard retries quietly every couple of seconds
+    /// so the keys work as soon as it's granted.
     private func syncBrightnessKeys() {
         if brightnessKeysEnabled {
             // Event tap: volume keys, and brightness keys from keyboards that
             // send them as events. Needs Accessibility.
             if !keys.isRunning {
-                if !MediaKeys.hasPermission && !didPromptForAccessibility {
-                    didPromptForAccessibility = true
+                if !MediaKeys.hasPermission && !Preferences.didPromptForAccessibility {
+                    Preferences.didPromptForAccessibility = true
                     MediaKeys.requestPermission()
                 }
                 keys.start()
             }
             // Keyboard reader: Apple keyboards' brightness keys. Needs Input Monitoring.
             if !keyboard.isRunning {
-                if !KeyboardReader.hasPermission && !didPromptForInputMonitoring {
-                    didPromptForInputMonitoring = true
+                if !KeyboardReader.hasPermission && !Preferences.didPromptForInputMonitoring {
+                    Preferences.didPromptForInputMonitoring = true
                     KeyboardReader.requestPermission()
                 }
                 keyboard.start()
@@ -915,11 +829,17 @@ final class DisplayController: ObservableObject {
     func askToReset() { confirmingReset = true }
     func cancelReset() { confirmingReset = false }
 
-    /// Put every screen back to normal and forget all settings.
+    /// Put every screen back to normal and forget all settings. Monitors
+    /// mostly ignore DDC/CI's factory-reset commands, so instead set each
+    /// DDC/CI monitor's contrast to 50%, the usual factory value.
     func resetToDefaults() {
         confirmingReset = false
         keys.stop()
         dimmer.restoreAll()
+        for (id, values) in ddcValues {
+            guard let contrast = values[VCP.contrast] else { continue }
+            setVCP(VCP.contrast, to: UInt16((Double(contrast.max) / 2).rounded()), for: id)
+        }
         // Wake monitors this app put in standby, reconnect disconnected ones.
         for (id, isOn) in intents where !isOn {
             guard let identity = identities[id],

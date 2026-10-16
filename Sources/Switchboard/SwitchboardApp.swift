@@ -165,11 +165,6 @@ private struct StatusLine: View {
                 .font(.caption)
                 .foregroundStyle(.orange)
                 .lineLimit(1)
-        } else if let notice = display.notice {
-            Text(notice)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
         } else if let text {
             Text(text)
                 .font(.caption)
@@ -215,23 +210,6 @@ private struct ScreenOptions: View {
             Button(display.showsSwitch ? "Hide Power Switch" : "Show Power Switch") {
                 controller.setSwitchVisible(!display.showsSwitch, for: display.id)
             }
-            if display.brightness != nil || display.contrast != nil {
-                Divider()
-                if controller.isFactoryResetUnsupported(display.id) {
-                    if display.contrast != nil {
-                        Button("Set Contrast to 50%") {
-                            controller.setTypicalContrast(for: display.id)
-                        }
-                    }
-                } else {
-                    Button("Restore Factory Brightness & Contrast") {
-                        controller.restoreFactoryPicture(for: display.id)
-                    }
-                    Button("Restore All Factory Settings") {
-                        controller.restoreFactoryPicture(for: display.id, everything: true)
-                    }
-                }
-            }
         }
     }
 }
@@ -269,37 +247,6 @@ private struct ScreenOptionsPanel: View {
                 get: { controller.isSwitchHidden(display.id) },
                 set: { controller.setSwitchVisible(!$0, for: display.id) }
             ))
-
-            if display.brightness != nil || display.contrast != nil {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Factory Settings")
-                        .font(.subheadline.weight(.medium))
-                    if controller.isFactoryResetUnsupported(display.id) {
-                        Text("This monitor doesn't support factory resets over DDC/CI. Use its own menu to reset it, or set a typical contrast here.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        if display.contrast != nil {
-                            Button("Set Contrast to 50%") {
-                                controller.setTypicalContrast(for: display.id)
-                            }
-                            .buttonStyle(.glass)
-                            .controlSize(.small)
-                        }
-                    } else {
-                        HStack(spacing: 8) {
-                            Button("Restore Brightness & Contrast") {
-                                controller.restoreFactoryPicture(for: display.id)
-                            }
-                            Button("Restore All Settings") {
-                                controller.restoreFactoryPicture(for: display.id, everything: true)
-                            }
-                        }
-                        .buttonStyle(.glass)
-                        .controlSize(.small)
-                    }
-                }
-            }
         }
     }
 }
@@ -645,6 +592,7 @@ private struct SettingsCard: View {
                             )
                         )
                     }
+                    ResetRow(controller: controller)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -652,6 +600,41 @@ private struct SettingsCard: View {
         .padding(Metrics.cardInset)
         .glassEffect(.regular, in: .rect(cornerRadius: Metrics.cardRadius))
         .animation(.snappy(duration: 0.25), value: controller.settingsExpanded)
+    }
+}
+
+/// Reset to Defaults, at the end of Settings, confirmed inline.
+private struct ResetRow: View {
+    @ObservedObject var controller: DisplayController
+
+    var body: some View {
+        HStack(spacing: 12) {
+            IconBadge(symbol: "arrow.counterclockwise", isActive: false)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(controller.confirmingReset ? "Reset Everything?" : "Reset to Defaults")
+                    .font(.system(size: 13, weight: .medium))
+                Text("Settings, dimming, and contrast to 50%")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            if controller.confirmingReset {
+                Button("Cancel") { controller.cancelReset() }
+                    .buttonStyle(.glass)
+                    .controlSize(.small)
+                Button("Reset") { controller.resetToDefaults() }
+                    .buttonStyle(.glassProminent)
+                    .tint(.red)
+                    .controlSize(.small)
+            } else {
+                Button("Reset…") { controller.askToReset() }
+                    .buttonStyle(.glass)
+                    .controlSize(.small)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .animation(.snappy(duration: 0.2), value: controller.confirmingReset)
     }
 }
 
@@ -713,45 +696,22 @@ private struct Footer: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            if controller.confirmingReset {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Reset to Defaults?")
-                        .font(.subheadline.weight(.semibold))
-                    Text("Restores every screen and forgets all settings")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Button("Cancel") { controller.cancelReset() }
-                    .buttonStyle(.glass)
-                Button("Reset") { controller.resetToDefaults() }
-                    .buttonStyle(.glassProminent)
-                    .tint(.red)
-            } else {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Switchboard")
-                        .font(.subheadline.weight(.semibold))
-                    Text(controller.versionLabel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                CircleButton(icon: "arrow.counterclockwise", help: "Reset to Defaults…") {
-                    controller.askToReset()
-                }
-                CircleButton(icon: "arrow.clockwise", help: "Refresh Screens") {
-                    controller.refresh()
-                }
-                CircleButton(icon: "power", help: "Quit Switchboard") {
-                    // Never leave a screen disconnected or dimmed behind us.
-                    controller.prepareToQuit()
-                    NSApplication.shared.terminate(nil)
-                }
-                .keyboardShortcut("q")
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Switchboard")
+                    .font(.subheadline.weight(.semibold))
+                Text(controller.versionLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+            Spacer()
+            CircleButton(icon: "power", help: "Quit Switchboard") {
+                // Never leave a screen disconnected or dimmed behind us.
+                controller.prepareToQuit()
+                NSApplication.shared.terminate(nil)
+            }
+            .keyboardShortcut("q")
         }
         .padding(.horizontal, 6)
-        .animation(.snappy(duration: 0.2), value: controller.confirmingReset)
     }
 }
 
