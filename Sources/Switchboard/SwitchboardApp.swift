@@ -592,6 +592,7 @@ private struct SettingsCard: View {
                             )
                         )
                     }
+                    RemoteSection(remote: controller.remote)
                     ResetRow(controller: controller)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -600,6 +601,98 @@ private struct SettingsCard: View {
         .padding(Metrics.cardInset)
         .glassEffect(.regular, in: .rect(cornerRadius: Metrics.cardRadius))
         .animation(.snappy(duration: 0.25), value: controller.settingsExpanded)
+    }
+}
+
+/// iPhone Remote: the switch, and when it's on, where to point the phone
+/// and the pairing code.
+private struct RemoteSection: View {
+    @ObservedObject var remote: RemoteControl
+
+    var body: some View {
+        OptionRow(
+            icon: "iphone",
+            title: "iPhone Remote",
+            detail: "Control screens from your iPhone and Shortcuts",
+            isOn: Binding(
+                get: { remote.isEnabled },
+                set: { remote.setEnabled($0) }
+            )
+        )
+        if remote.isEnabled {
+            if let problem = remote.problem {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text(problem)
+                        .font(.caption)
+                    Spacer()
+                }
+                .padding(.leading, 8 + Metrics.badge + 12)
+                .padding(.trailing, 8)
+                .padding(.bottom, 6)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("In Safari on your iPhone, open")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 6) {
+                            Text(remote.address)
+                                .font(.caption.monospaced())
+                                .textSelection(.enabled)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer(minLength: 4)
+                            Button("Copy") {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(remote.address, forType: .string)
+                            }
+                            .buttonStyle(.glass)
+                            .controlSize(.mini)
+                        }
+                        if let fallback = remote.fallbackAddress {
+                            Text("or \(fallback)")
+                                .font(.caption2.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("Pairing code")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(Self.grouped(remote.code))
+                            .font(.system(.callout, design: .monospaced).weight(.semibold))
+                            .textSelection(.enabled)
+                        Spacer(minLength: 4)
+                        Button("New Code") { remote.newCode() }
+                            .buttonStyle(.glass)
+                            .controlSize(.mini)
+                    }
+                    if remote.pairedCount > 0 {
+                        HStack(spacing: 6) {
+                            Text(remote.pairedCount == 1 ? "1 paired device" : "\(remote.pairedCount) paired devices")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer(minLength: 4)
+                            Button("Forget All") { remote.forgetPairedDevices() }
+                                .buttonStyle(.glass)
+                                .controlSize(.mini)
+                        }
+                    }
+                }
+                .padding(.leading, 8 + Metrics.badge + 12)
+                .padding(.trailing, 8)
+                .padding(.bottom, 6)
+            }
+        }
+    }
+
+    /// "123456" → "123 456", easier to read across a room.
+    static func grouped(_ code: String) -> String {
+        guard code.count == 6 else { return code }
+        return "\(code.prefix(3)) \(code.suffix(3))"
     }
 }
 

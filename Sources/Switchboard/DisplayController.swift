@@ -73,6 +73,8 @@ final class DisplayController: ObservableObject {
     private let dimmer = SoftwareDimmer()
     private let keys = MediaKeys()
     private let keyboard = KeyboardReader()
+    /// The iPhone remote (Settings → iPhone Remote; off by default).
+    let remote = RemoteControl()
     /// Brightness key currently held on the keyboard, and its repeat timer.
     private var heldKey: MediaKey?
     private var repeatTimer: Timer?
@@ -137,6 +139,7 @@ final class DisplayController: ObservableObject {
         }, Unmanaged.passUnretained(self).toOpaque())
         observeSystemEvents()
         applyAppearanceBrightness()
+        remote.attach(to: self)
     }
 
     /// Re-read everything: the screen list, resolutions, gamma, DDC values.
@@ -848,6 +851,7 @@ final class DisplayController: ObservableObject {
         }
         reconnectAll()
         Preferences.resetAll()
+        remote.reset()
         intents = [:]
         problems = [:]
         ddcValues = [:]

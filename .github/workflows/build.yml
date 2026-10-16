@@ -49,6 +49,10 @@ jobs:
           TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', inputs.release) }}
         run: |
           # Creates the tag on GitHub at this commit if it doesn't exist yet.
-          gh release create "$TAG" dist/Switchboard.zip --target "$GITHUB_SHA" \
+          # A version with a hyphen (1.1.0-beta.1) is published as a pre-release,
+          # so the latest stable release stays the default download.
+          PRERELEASE=""
+          case "$TAG" in *-*) PRERELEASE="--prerelease" ;; esac
+          gh release create "$TAG" dist/Switchboard.zip --target "$GITHUB_SHA" $PRERELEASE \
             --title "Switchboard ${TAG#v}" --notes-file RELEASE_NOTES.md \
           || gh release upload "$TAG" dist/Switchboard.zip --clobber

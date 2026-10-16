@@ -25,6 +25,8 @@ enum Preferences {
     private static let factoryResetUnsupportedKey = "factoryResetUnsupported"
     private static let promptedAccessibilityKey = "promptedForAccessibility"
     private static let promptedInputMonitoringKey = "promptedForInputMonitoring"
+    private static let remoteEnabledKey = "remoteEnabled"
+    private static let remoteKeyHashesKey = "remoteKeyHashes"
     private static let appearanceBrightnessKey = "appearanceBrightness"
 
     static func offMethod(for monitor: String) -> OffMethod {
@@ -72,6 +74,18 @@ enum Preferences {
     static var didPromptForInputMonitoring: Bool {
         get { defaults.bool(forKey: promptedInputMonitoringKey) }
         set { defaults.set(newValue, forKey: promptedInputMonitoringKey) }
+    }
+
+    /// The iPhone remote (off unless turned on).
+    static var remoteEnabled: Bool {
+        get { defaults.bool(forKey: remoteEnabledKey) }
+        set { defaults.set(newValue, forKey: remoteEnabledKey) }
+    }
+
+    /// SHA-256 hashes of the keys issued to paired phones (see RemotePairing).
+    static var remoteKeyHashes: Set<String> {
+        get { Set(defaults.stringArray(forKey: remoteKeyHashesKey) ?? []) }
+        set { defaults.set(newValue.sorted(), forKey: remoteKeyHashesKey) }
     }
 
     static var brightnessKeysEnabled: Bool {
@@ -122,7 +136,8 @@ enum Preferences {
     /// Forget every setting (Reset to Defaults).
     static func resetAll() {
         for key in [offMethodKey, offMethodAutomaticKey, switchVisibleKey, autoOffKey, disconnectedKey, brightnessKeysKey,
-                    followAppearanceKey, appearanceBrightnessKey, factoryResetUnsupportedKey] {
+                    followAppearanceKey, appearanceBrightnessKey, factoryResetUnsupportedKey,
+                    remoteEnabledKey, remoteKeyHashesKey] {
             defaults.removeObject(forKey: key)
         }
     }
