@@ -290,57 +290,22 @@ final class DisplayController: ObservableObject {
     private func switchOff(_ identity: DisplayIdentity) {
         let id = identity.id
         let key = identity.key
-        var method = Preferences.offMethod(for: key)
-        if method == .standby {
+        if Preferences.offMethod(for: key) == .standby {
             if ddcSync({ $0.setPower(.standby, for: identity) }) {
                 intents[id] = false
                 return
             }
             // No answer over DDC/CI (unsupported or disabled on the monitor):
             // switch it off by disconnecting, now and from now on.
-            method = .disconnect
             Log.display.notice("\(identity.name, privacy: .public) did not answer DDC/CI; switching it off by disconnecting")
-            Preferences.setOffMethod(method, for: key, automatic: true)
-        } else if method == .blackout, Preferences.offMethodIsAutomatic(for: key) {
-            // An earlier version picked Black Out on its own. Only a user's
-            // explicit choice should black a screen out.
-            method = .disconnect
-            Preferences.setOffMethod(method, for: key, automatic: true)
+            Preferences.setOffMethod(.disconnect, for: key, automatic: true)
         }
-
-        switch method {
-        case .blackout:
-            if !blackOut(identity) {
-                Preferences.setOffMethod(.disconnect, for: key, automatic: true)
-                disconnect(identity)
-            }
-        case .disconnect, .standby:
-            disconnect(identity)
-        }
-    }
-
-    /// Turn the screen's picture black. Fails (and undoes it) if another
-    /// screen went black too, which happens when screens share a gamma table.
-    private func blackOut(_ identity: DisplayIdentity) -> Bool {
-        let id = identity.id
-        let others = Displays.online().filter { $0 != id && !dimmer.isBlackedOut($0) }
-        let alreadyBlack = Set(others.filter { SoftwareDimmer.looksBlack($0) })
-        dimmer.setBlackedOut(true, for: id)
-        if others.contains(where: { !alreadyBlack.contains($0) && SoftwareDimmer.looksBlack($0) }) {
-            Log.display.notice("Blacking out \(identity.name, privacy: .public) also blacked out another screen; disconnecting instead")
-            dimmer.setBlackedOut(false, for: id)
-            return false
-        }
-        intents[id] = false
-        return true
+        disconnect(identity)
     }
 
     private func switchOn(_ identity: DisplayIdentity) {
         let id = identity.id
-        if dimmer.isBlackedOut(id) {
-            dimmer.setBlackedOut(false, for: id)
-            intents[id] = true
-        } else if Preferences.disconnectedDisplays.contains(id) {
+        if Preferences.disconnectedDisplays.contains(id) {
             if SoftwareDisconnect.setEnabled(true, displayID: id) {
                 Preferences.disconnectedDisplays.remove(id)
                 intents[id] = true

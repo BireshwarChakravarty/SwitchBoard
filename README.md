@@ -145,7 +145,7 @@ or by right-clicking a screen in the list.
 
 | Option | Description |
 |---|---|
-| **Switch Off By** | How the screen is switched off: **DDC/CI Standby** (the monitor sleeps), **Disconnecting** (macOS stops using the screen), or **Blacking Out** (the picture goes black and the backlight stays on). Switchboard chooses automatically: the first time a monitor doesn't respond to DDC/CI, it switches to disconnecting and remembers the choice. |
+| **Switch Off By** | How the screen is switched off: **DDC/CI Standby** (the monitor sleeps) or **Disconnecting** (macOS stops using the screen, as if its cable were unplugged). Switchboard chooses automatically: the first time a monitor doesn't respond to DDC/CI, it switches to disconnecting and remembers the choice. |
 | **Switch Off While Locked or Asleep** | Switches the screen off when the Mac locks or sleeps, and back on when you unlock it. |
 | **Hide power switch** | Removes the switch for a screen you never turn off. |
 | **Restore Brightness & Contrast** | Asks the monitor to restore its factory brightness and contrast. |

@@ -7,10 +7,6 @@ enum OffMethod: String, Hashable {
     case standby
     /// Software disconnect: macOS stops using the monitor (see SoftwareDisconnect).
     case disconnect
-    /// Black out: the screen's picture is turned black through its gamma
-    /// table. Instant, and macOS doesn't reconfigure displays, so a mirrored
-    /// screen's source doesn't blank. The backlight stays on.
-    case blackout
 }
 
 /// Per-monitor and app settings, remembered across launches. Monitors are
@@ -29,8 +25,12 @@ enum Preferences {
     private static let appearanceBrightnessKey = "appearanceBrightness"
 
     static func offMethod(for monitor: String) -> OffMethod {
-        let stored = defaults.dictionary(forKey: offMethodKey)?[monitor] as? String
-        return stored.flatMap(OffMethod.init(rawValue:)) ?? .standby
+        switch defaults.dictionary(forKey: offMethodKey)?[monitor] as? String {
+        case nil: return .standby
+        // Black Out (before 1.0.2) could black out a mirrored screen's
+        // source too, so it was removed; screens set to it now disconnect.
+        case let stored?: return OffMethod(rawValue: stored) ?? .disconnect
+        }
     }
 
     /// `automatic`: Switchboard picked the method (and may pick a better one
@@ -38,10 +38,6 @@ enum Preferences {
     static func setOffMethod(_ method: OffMethod, for monitor: String, automatic: Bool = false) {
         set(method.rawValue, for: monitor, in: offMethodKey)
         set(automatic, for: monitor, in: offMethodAutomaticKey)
-    }
-
-    static func offMethodIsAutomatic(for monitor: String) -> Bool {
-        defaults.dictionary(forKey: offMethodAutomaticKey)?[monitor] as? Bool ?? true
     }
 
     /// Nil when the user hasn't chosen; the caller picks the default.

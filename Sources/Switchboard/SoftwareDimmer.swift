@@ -20,7 +20,6 @@ final class SoftwareDimmer {
     /// Each display's table as it was before we first dimmed it.
     private var originals: [CGDirectDisplayID: GammaTable] = [:]
     private var levels: [CGDirectDisplayID: Double] = [:]
-    private var blackedOut: Set<CGDirectDisplayID> = []
 
     func level(for id: CGDirectDisplayID) -> Double {
         levels[id] ?? 1
@@ -42,39 +41,19 @@ final class SoftwareDimmer {
     }
 
     func reapplyAll() {
-        for id in Set(levels.keys).union(blackedOut) { apply(id) }
-    }
-
-    func isBlackedOut(_ id: CGDirectDisplayID) -> Bool { blackedOut.contains(id) }
-
-    /// Black out a screen (or bring it back), independently of its dimming level.
-    func setBlackedOut(_ black: Bool, for id: CGDirectDisplayID) {
-        if originals[id] == nil {
-            originals[id] = Self.readTable(id) ?? Self.linearTable
-        }
-        if black { blackedOut.insert(id) } else { blackedOut.remove(id) }
-        apply(id)
-    }
-
-    /// Whether a screen's gamma table is currently (nearly) all black. Used to
-    /// check that blacking out one screen didn't also black out another
-    /// (screens that share a gamma table in a hardware mirror set).
-    static func looksBlack(_ id: CGDirectDisplayID) -> Bool {
-        guard let table = readTable(id) else { return false }
-        let brightest = max(table.red.max() ?? 0, table.green.max() ?? 0, table.blue.max() ?? 0)
-        return brightest < 0.05
+        for id in levels.keys { apply(id) }
     }
 
     /// Undo all dimming.
     func restoreAll() {
         levels.removeAll()
-        blackedOut.removeAll()
         CGDisplayRestoreColorSyncSettings()
     }
 
     private func apply(_ id: CGDirectDisplayID) {
-        guard let table = originals[id] else { return }
-        let factor = blackedOut.contains(id) ? 0 : CGGammaValue(levels[id] ?? 1)
+        // A switched-off (disconnected) screen has no gamma table to set.
+        guard let table = originals[id], CGDisplayIsActive(id) != 0 else { return }
+        let factor = CGGammaValue(levels[id] ?? 1)
         let red = table.red.map { $0 * factor }
         let green = table.green.map { $0 * factor }
         let blue = table.blue.map { $0 * factor }

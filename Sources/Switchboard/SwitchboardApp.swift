@@ -184,7 +184,6 @@ private struct StatusLine: View {
             switch display.offMethod {
             case .standby: parts.append("Standby")
             case .disconnect: parts.append("Disconnected")
-            case .blackout: parts.append("Blacked out")
             }
         } else if let mirrorNote = display.mirrorNote {
             parts.append(mirrorNote)
@@ -208,7 +207,6 @@ private struct ScreenOptions: View {
             )) {
                 Text("DDC/CI Standby").tag(OffMethod.standby)
                 Text("Disconnecting").tag(OffMethod.disconnect)
-                Text("Blacking Out").tag(OffMethod.blackout)
             }
             Toggle("Switch Off While Locked or Asleep", isOn: Binding(
                 get: { display.autoOff },
@@ -258,7 +256,6 @@ private struct ScreenOptionsPanel: View {
                 )) {
                     Text("Standby").tag(OffMethod.standby)
                     Text("Disconnect").tag(OffMethod.disconnect)
-                    Text("Black Out").tag(OffMethod.blackout)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
