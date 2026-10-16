@@ -6,10 +6,20 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-17
+
 ### Fixed
-- The remote's icon can be cached, so Safari keeps it for the Home Screen.
-- Replies to `HEAD` requests report the real size of what `GET` returns,
-  instead of zero.
+- **Add to Home Screen** could still show a letter instead of Switchboard's
+  icon, because iOS fetches the icon separately and that can fail for a
+  plain-HTTP address on the local network. The page now carries the icon
+  inside itself.
+- The remote's icon can be cached, and replies to `HEAD` requests report the
+  real size of what `GET` returns instead of zero.
+
+### Added
+- **Home Screen Icon** on the remote page: a configuration profile that adds
+  the remote to the Home Screen as a web clip, with the icon built in, for
+  when Add to Home Screen still shows a letter.
 
 ## [2.0.3] - 2026-10-17
 
@@ -132,7 +142,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.3...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.3...v2.1.0
 [2.0.3]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.0...v2.0.1

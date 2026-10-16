@@ -12,9 +12,20 @@ enum RemotePage {
       "display": "standalone",
       "background_color": "#101014",
       "theme_color": "#101014",
-      "icons": [{ "src": "/apple-touch-icon.png?v=2", "sizes": "180x180", "type": "image/png", "purpose": "any" }]
+      "icons": [{ "src": "/apple-touch-icon.png?v=3", "sizes": "180x180", "type": "image/png", "purpose": "any" }]
     }
     """##
+
+    /// The page with its Home Screen icon embedded as a data URL, so iOS
+    /// doesn't have to fetch it separately (which can fail for plain-HTTP
+    /// addresses on the local network). Without an icon, it links to the file.
+    static func page(touchIcon: Data?) -> String {
+        let source = touchIcon.flatMap { $0.isEmpty ? nil : "data:image/png;base64,\($0.base64EncodedString())" }
+            ?? "/apple-touch-icon.png?v=3"
+        return html.replacingOccurrences(of: touchIconPlaceholder, with: source)
+    }
+
+    static let touchIconPlaceholder = "{{TOUCH_ICON}}"
 
     static let html = ##"""
     <!doctype html>
@@ -27,8 +38,8 @@ enum RemotePage {
     <meta name="apple-mobile-web-app-title" content="Switchboard">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="color-scheme" content="light dark">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
-    <link rel="icon" type="image/png" href="/apple-touch-icon.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{TOUCH_ICON}}">
+    <link rel="icon" type="image/png" href="/apple-touch-icon.png?v=3">
     <link rel="manifest" href="/manifest.webmanifest">
     <title>Switchboard</title>
     <style>
@@ -134,6 +145,9 @@ enum RemotePage {
       background: var(--row); color: var(--text); -webkit-user-select: text; user-select: text; }
     #pair .error { color: var(--danger); min-height: 20px; margin: 10px 0; font-size: 14px; }
 
+    .action { padding: 4px 10px 12px; }
+    .action a { display: block; text-align: center; text-decoration: none; font-weight: 600;
+      border-radius: 999px; padding: 11px 16px; background: var(--accent); color: #fff; }
     footer { text-align: center; color: var(--muted); font-size: 13px; padding: 6px; }
     footer button { background: none; color: var(--accent); padding: 6px; font-weight: 500; }
     #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px);
@@ -183,11 +197,25 @@ enum RemotePage {
                 <li>In the Shortcuts app, tap <b>+</b> and add the <b>Get Contents of URL</b> action.</li>
                 <li>Paste a link below as its URL.</li>
                 <li>Tap <b>Show More</b> and set <b>Method</b> to <b>POST</b>.</li>
-                <li>Name the shortcut, for example “ARZOPA Off”. Say it to Siri to run it.</li>
+                <li>Name the shortcut, for example “Monitor Off”. Say it to Siri to run it.</li>
               </ol>
               Copied links include this iPhone's key (shown here as •••), so keep them to yourself. Your iPhone must be on the same network as the Mac.
             </div>
             <div id="links"></div>
+          </details>
+        </section>
+        <section class="card">
+          <details id="homescreen">
+            <summary>Home Screen Icon</summary>
+            <div class="help">
+              If <b>Add to Home Screen</b> shows a letter instead of Switchboard's icon, add it with a profile instead:
+              <ol>
+                <li>Tap <b>Download Profile</b>, then <b>Allow</b>.</li>
+                <li>Open <b>Settings</b>, tap <b>Profile Downloaded</b>, then <b>Install</b>.</li>
+              </ol>
+              The profile only adds the icon. Remove it any time in Settings → General → VPN &amp; Device Management.
+            </div>
+            <div class="action"><a class="primary" href="/Switchboard.mobileconfig">Download Profile</a></div>
           </details>
         </section>
         <footer>

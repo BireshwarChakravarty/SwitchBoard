@@ -44,6 +44,7 @@ of keys.
 | `POST` | `/api/screens/<screen>/resolution/<n>` | Choose a resolution by its index in `resolutions` |
 | `POST` | `/api/screens/all/brightness/<0–100>` | Set every adjustable screen's brightness |
 | `POST` | `/api/pair` | Exchange a pairing code for a key |
+| `GET` | `/Switchboard.mobileconfig` | A profile that adds the remote to the Home Screen as a web clip, with the icon (no key needed; it contains no secrets) |
 
 Actions must use `POST`; reads use `GET`. Values may be decimals or end in `%`
 (`40.5`, `40%`); they're rounded to whole numbers.

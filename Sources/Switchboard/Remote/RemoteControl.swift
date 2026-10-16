@@ -230,13 +230,19 @@ final class RemoteControl: ObservableObject {
 
         switch route {
         case .page:
-            return HTTPResponse(status: 200, contentType: "text/html; charset=utf-8", body: Data(RemotePage.html.utf8))
+            return HTTPResponse(status: 200, contentType: "text/html; charset=utf-8",
+                                body: Data(RemotePage.page(touchIcon: icon()).utf8))
         case .manifest:
             return HTTPResponse(status: 200, contentType: "application/manifest+json", body: Data(RemotePage.manifest.utf8))
         case .icon:
             // Cacheable, so Safari can keep it for the Home Screen.
             return HTTPResponse(status: 200, contentType: "image/png", body: icon(),
                                 cacheControl: "public, max-age=86400")
+        case .webClip:
+            let url = RemoteWebClip.url(forHost: request.headers["host"]) ?? "\(address)/"
+            return HTTPResponse(status: 200, contentType: RemoteWebClip.contentType,
+                                body: RemoteWebClip.profile(url: url, icon: icon()),
+                                extraHeaders: ["Content-Disposition": "attachment; filename=\"\(RemoteWebClip.fileName)\""])
         case .state:
             return .json(state(of: controller))
         case .pair:

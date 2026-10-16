@@ -4,6 +4,7 @@ import Foundation
 /// it so it can be unit-tested without displays.
 ///
 ///     GET  /                                     the web remote
+///     GET  /Switchboard.mobileconfig             Home Screen web clip profile
 ///     GET  /api/screens                          every screen's state
 ///     POST /api/pair                             {"code": "123456"} → {"key": …}
 ///     POST /api/screens/<screen>/on|off|toggle   power
@@ -17,6 +18,7 @@ enum RemoteRoute: Equatable {
     case page
     case manifest
     case icon
+    case webClip
     case state
     case pair
     case power(screen: String, on: Bool?) // nil: toggle
@@ -25,7 +27,7 @@ enum RemoteRoute: Equatable {
     /// Whether the route needs a paired key.
     var needsKey: Bool {
         switch self {
-        case .page, .manifest, .icon, .pair: false
+        case .page, .manifest, .icon, .webClip, .pair: false
         default: true
         }
     }
@@ -53,6 +55,8 @@ enum RemoteRoute: Equatable {
             return get(.manifest)
         case ["icon.png"], ["apple-touch-icon.png"], ["apple-touch-icon-precomposed.png"]:
             return get(.icon)
+        case [RemoteWebClip.fileName]:
+            return get(.webClip)
         case ["api", "screens"]:
             return get(.state)
         case ["api", "pair"]:

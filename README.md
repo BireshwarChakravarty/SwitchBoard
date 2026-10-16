@@ -136,7 +136,9 @@ alongside Switchboard's.
    as `http://Mac-mini.local:8723` and a six-digit pairing code.
 2. On an iPhone on the same Wi-Fi, open the address in Safari and enter the
    code.
-3. Choose **Share → Add to Home Screen** to use it like an app.
+3. Choose **Share → Add to Home Screen** to use it like an app. If the icon
+   shows as a letter, open **Home Screen Icon** at the bottom of the page and
+   install the profile instead; it adds the same web app with the icon.
 
 For Siri, click **Add Shortcuts…** under iPhone Remote. Switchboard builds
 "*Screen* On", "*Screen* Off" and "Toggle *Screen*" for each screen with a

@@ -41,6 +41,7 @@ Sources/Switchboard/
 │   ├── RemoteRoutes.swift        Routes and screen-name matching
 │   ├── RemotePairing.swift       Pairing codes and hashed keys
 │   ├── RemoteShortcuts.swift     Siri shortcut files, signed with `shortcuts sign`
+│   ├── RemoteWebClip.swift       Home Screen web clip profile (.mobileconfig)
 │   └── RemotePage.swift          The iPhone web page (self-contained HTML)
 └── Support/
     ├── Preferences.swift         UserDefaults-backed settings

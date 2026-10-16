@@ -13,6 +13,7 @@ final class RemoteRouteTests: XCTestCase {
         XCTAssertEqual(route("GET", "icon.png"), .success(.icon))
         XCTAssertEqual(route("GET", "apple-touch-icon.png"), .success(.icon))
         XCTAssertEqual(route("GET", "apple-touch-icon-precomposed.png"), .success(.icon))
+        XCTAssertEqual(route("GET", "Switchboard.mobileconfig"), .success(.webClip))
         XCTAssertEqual(route("GET", "api/screens"), .success(.state))
         XCTAssertEqual(route("POST", "api/pair"), .success(.pair))
     }
@@ -49,6 +50,7 @@ final class RemoteRouteTests: XCTestCase {
     func testOnlyPageAndPairingAreOpen() {
         XCTAssertFalse(RemoteRoute.page.needsKey)
         XCTAssertFalse(RemoteRoute.pair.needsKey)
+        XCTAssertFalse(RemoteRoute.webClip.needsKey)
         XCTAssertTrue(RemoteRoute.state.needsKey)
         XCTAssertTrue(RemoteRoute.power(screen: "x", on: false).needsKey)
         XCTAssertTrue(RemoteRoute.set(screen: "x", control: .volume, value: 1).needsKey)
