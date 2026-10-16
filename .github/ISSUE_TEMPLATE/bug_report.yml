@@ -1,0 +1,52 @@
+name: Bug report
+description: Something doesn't work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. DDC/CI behaviour varies a lot between monitors, so the details below help most.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Switchboard version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model and macOS version
+      placeholder: "Mac mini (M4, 2024), macOS 26.1"
+    validations:
+      required: true
+  - type: textarea
+    id: monitors
+    attributes:
+      label: Monitors and connections
+      description: Make and model of each monitor, and how it's connected (USB-C, Thunderbolt, HDMI, dock or adapter).
+      placeholder: |
+        - Dell U2723QE over USB-C
+        - Portable 15.6" monitor over HDMI, mirrored
+    validations:
+      required: true
+  - type: input
+    id: keyboard
+    attributes:
+      label: Keyboard (for keyboard-key problems)
+      placeholder: "Apple Magic Keyboard with Touch ID"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log
+      description: |
+        Run this in Terminal, reproduce the problem, then paste the output:
+        `log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"'`
+      render: text

@@ -1,72 +1,250 @@
 <p align="center">
-  <img src="Resources/AppIcon.png" width="160" alt="Switchboard icon">
+  <img src="Resources/AppIcon.png" width="144" alt="Switchboard app icon">
 </p>
 
 <h1 align="center">Switchboard</h1>
 
 <p align="center">
-  A menu-bar control panel for the monitors on a Mac mini.
+  <strong>A menu-bar control panel for external displays on Apple Silicon Macs.</strong><br>
+  Power, brightness, contrast, volume and resolution for every screen, in one place.
+</p>
+
+<p align="center">
+  <a href="https://github.com/BireshwarChakravarty/SwitchBoard/actions/workflows/build.yml"><img src="https://github.com/BireshwarChakravarty/SwitchBoard/actions/workflows/build.yml/badge.svg" alt="Build and test"></a>
+  <a href="https://github.com/BireshwarChakravarty/SwitchBoard/releases/latest"><img src="https://img.shields.io/github/v/release/BireshwarChakravarty/SwitchBoard?label=release" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/macOS-26%2B-000000?logo=apple" alt="macOS 26 or later">
+  <img src="https://img.shields.io/badge/Apple%20Silicon-required-000000" alt="Apple Silicon">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/BireshwarChakravarty/SwitchBoard" alt="MIT License"></a>
 </p>
 
 ---
 
-Switchboard gives every external screen a **switch** and a set of **faders**:
+macOS gives an external monitor almost no controls: no power switch, no
+brightness, and on a Mac mini the keyboard's brightness keys only report
+"not supported". Switchboard fills that gap. It talks to monitors directly
+over **DDC/CI**, the control channel built into DisplayPort, HDMI and USB-C,
+and falls back to software where a monitor doesn't support it.
 
-- **Switch screens off and on.** Monitors that support DDC/CI go into
-  hardware standby. Monitors that don't (common on portable monitors) are
-  disconnected in software, as if the cable were pulled, and reconnected when
-  you switch them back on. You can choose **Black Out** for a screen instead.
-- **Combined brightness.** One brightness slider per screen: the monitor's
-  real backlight over DDC/CI, continuing below its minimum with software
-  dimming. Monitors without DDC/CI are dimmed in software. An **All Screens**
-  slider moves every screen together.
-- **Contrast and volume** over DDC/CI, with live readouts.
-- **Resolution slider** with the scaled sizes System Settings offers (HiDPI
-  preferred), applied when you let go.
-- **Your keyboard's brightness keys work.** On a Mac mini macOS says "not
-  supported"; with Switchboard they adjust the monitor under the pointer
-  (and any screen mirroring it), with an on-screen indicator. Hold ⇧⌥ for
+It's a native SwiftUI app with the macOS 26 Liquid Glass design. It has no
+dependencies and makes no network connections.
+
+## Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Getting started](#getting-started)
+- [Using Switchboard](#using-switchboard)
+- [How it works](#how-it-works)
+- [Privacy and safety](#privacy-and-safety)
+- [Troubleshooting](#troubleshooting)
+- [Uninstalling](#uninstalling)
+- [Building from source](#building-from-source)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+
+**Power**
+- Switch any external screen off and on from the menu bar.
+- Monitors that support DDC/CI go into hardware standby. Monitors that don't,
+  which includes many portable displays, are disconnected in software. Your
+  other screens stay on either way.
+- Optionally switch a screen off while the Mac is locked or asleep, and back on
+  when you return.
+
+**Picture**
+- **Combined brightness:** one slider drives the monitor's real backlight, then
+  continues below its minimum with software dimming. Monitors without DDC/CI
+  are dimmed in software.
+- **Contrast**, **volume** for monitor speakers, and **resolution**, using the
+  same scaled sizes System Settings offers.
+- **All Screens:** one brightness slider for every display at once.
+- **Match Light & Dark Mode:** each screen remembers a brightness for each
+  appearance and switches automatically.
+- Restore a monitor's factory picture settings.
+
+**Keyboard**
+- Brightness keys adjust the screen under the pointer, together with any screen
+  mirroring it, with an on-screen indicator. Hold <kbd>⇧</kbd><kbd>⌥</kbd> for
   finer steps.
-- **Volume keys for monitor speakers.** When sound plays through a monitor
-  over HDMI or DisplayPort, which macOS can't adjust, the volume and mute keys
-  control the monitor's own volume.
-- **Match Light & Dark Mode:** each screen remembers a brightness for Light
-  mode and one for Dark mode, and switches when macOS does, including on its
-  Auto schedule. The app itself follows the system appearance too.
-- **Off while locked or asleep:** per screen, switch it off when the Mac locks
-  or sleeps and back on when you return.
-- **Mirroring-aware:** shows "Mirrored to …" / "Mirror of …" like the system
-  does.
-- **Safe by design:** the last screen still on has no switch, Quit reconnects
-  everything, and a crash or logout can never leave a screen stuck off.
-- **Reset to Defaults** puts every screen back to normal and forgets all
-  settings.
+- Volume and mute keys control monitor speakers, which macOS can't adjust over
+  HDMI or DisplayPort.
 
-It's a native SwiftUI app with the macOS 26 Liquid Glass look, with no
-dependencies and no network access.
+**Design**
+- Laid out like Control Center: a list of screens, large titled sliders for the
+  selected screen, and a collapsible Settings section.
+- Follows Light and Dark mode, and supports VoiceOver.
 
 ## Requirements
 
-- An **Apple Silicon Mac mini**. Switchboard is built for Macs without a
-  screen of their own (it also runs on a Mac Studio). It isn't meant for
-  MacBooks or iMacs.
-- **macOS 26 (Tahoe)** or later.
-- The Swift toolchain: the free **Command Line Tools** are enough
-  (`xcode-select --install`). Full Xcode isn't needed.
-- For hardware control, the monitor must support **DDC/CI**, and it must be
-  enabled in the monitor's own on-screen menu. Some docks and adapters don't
-  pass DDC through.
+| | |
+|---|---|
+| **Mac** | Apple Silicon. Designed for Macs without a built-in display, such as Mac mini. |
+| **macOS** | 26 (Tahoe) or later |
+| **Monitors** | Any external display. Hardware controls require DDC/CI, which most monitors support but some ship with it turned off in their on-screen menu. Some docks and adapters don't pass DDC/CI through. |
 
-## Install
+## Installation
 
-**Download the app** (easiest): get `Switchboard.zip` from the
-[latest release](https://github.com/BireshwarChakravarty/SwitchBoard/releases/latest),
-unzip it and move **Switchboard.app** to Applications. It isn't notarized, so
-the first time, right-click it and choose **Open**, then **Open** again (or run
-`xattr -dr com.apple.quarantine /Applications/Switchboard.app`).
+### Download
 
-**Or build it yourself** with the Swift toolchain (the free Command Line Tools
-are enough: `xcode-select --install`):
+1. Download **Switchboard.zip** from the
+   [latest release](https://github.com/BireshwarChakravarty/SwitchBoard/releases/latest).
+2. Unzip it and move **Switchboard.app** to your Applications folder.
+3. Open it. Switchboard is ad-hoc signed rather than notarized, so the first
+   time, right-click the app and choose **Open**, then **Open** again.
+   Alternatively, run:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Switchboard.app
+   ```
+
+### Build from source
+
+See [Building from source](#building-from-source).
+
+## Getting started
+
+Switchboard lives in the menu bar: look for the monitor icon with a switch on
+its screen. On first launch it turns on **Start at Login** and asks for two
+permissions, which the keyboard keys need:
+
+| Permission | Where | Why |
+|---|---|---|
+| **Input Monitoring** | System Settings → Privacy & Security → Input Monitoring | Reads Apple keyboards' brightness keys. macOS handles these inside its keyboard driver, so no app sees them otherwise. |
+| **Device Control and Data Access** | System Settings → Privacy & Security → Device Control and Data Access (called **Accessibility** before macOS 27) | Catches the volume keys, and brightness keys from keyboards that send them as standard events. |
+
+Turn **Switchboard** on in both lists. The keys start working within a few
+seconds, with no need to relaunch. Everything else works without these
+permissions.
+
+> [!TIP]
+> Quit other display utilities such as BetterDisplay, MonitorControl or Lunar
+> while using Switchboard. They respond to the same keys and talk to the same
+> monitors.
+
+## Using Switchboard
+
+### The menu
+
+| Section | What it does |
+|---|---|
+| **Screens** | Every connected screen, with its status (for example *Mirrored to …* or *Disconnected*) and a power switch. Click a screen to show its controls. |
+| **Selected screen** | Brightness, Contrast, Volume and Resolution sliders, with live values. The **⋯** button opens that screen's options. |
+| **Brightness · All Screens** | One slider for every screen. Shown when two or more screens can be adjusted. |
+| **Settings** | Keyboard Keys, Match Light & Dark Mode, and Start at Login. |
+| **Footer** | Reset to Defaults, Refresh Screens, and Quit. |
+
+The last screen that's still on has no power switch, so you can never switch
+every screen off at once.
+
+### Screen options
+
+Open them with **⋯** on the selected screen, or by right-clicking a screen in
+the list.
+
+| Option | Description |
+|---|---|
+| **Switch Off By** | How the screen is switched off: **DDC/CI Standby** (the monitor sleeps), **Disconnecting** (macOS stops using the screen), or **Blacking Out** (the picture goes black and the backlight stays on). Switchboard chooses automatically: the first time a monitor doesn't respond to DDC/CI, it switches to disconnecting and remembers the choice. |
+| **Switch Off While Locked or Asleep** | Switches the screen off when the Mac locks or sleeps, and back on when you unlock it. |
+| **Hide Power Switch** | Removes the switch for a screen you never turn off. |
+| **Restore Factory Brightness & Contrast** | Asks the monitor to restore its factory brightness and contrast. |
+| **Restore All Factory Settings** | Asks the monitor to reset everything, like the Reset option in its own menu. |
+
+Both factory commands are optional in the DDC/CI standard. Switchboard reads
+the monitor's settings back afterwards and tells you if the monitor ignored
+the request.
+
+### Keyboard keys
+
+| Keys | Action |
+|---|---|
+| Brightness up / down (<kbd>F1</kbd> / <kbd>F2</kbd> on Apple keyboards) | One step of 16, like a built-in display. Hold the key to keep stepping. |
+| <kbd>⇧</kbd><kbd>⌥</kbd> + brightness | One step of 64 |
+| <kbd>fn</kbd> + <kbd>F1</kbd> / <kbd>F2</kbd> | Normal F1 and F2. This reverses if *Use F1, F2, etc. keys as standard function keys* is on. |
+| Volume up / down, mute | Monitor speakers, when sound plays through them over HDMI or DisplayPort. Otherwise the keys work as usual. |
+
+Brightness keys adjust the screen under the pointer, together with any screen
+mirroring it. If that screen can't be adjusted, they adjust your other
+screens. The status line under **Settings → Keyboard Keys** shows each key
+Switchboard receives and what it did.
+
+On Apple keyboards, macOS may still show its own "not supported" indicator
+alongside Switchboard's. Reading the keyboard directly can't suppress it.
+
+## How it works
+
+| Feature | Implementation |
+|---|---|
+| Standby and wake | DDC/CI *Set VCP Feature* `0xD6` (power mode): `0x05` standby, `0x01` on |
+| Brightness, contrast, volume | DDC/CI VCP `0x10`, `0x12` and `0x62`, read back with *Get VCP Feature* |
+| Factory reset | DDC/CI VCP `0x06` (brightness and contrast) and `0x04` (all settings) |
+| DDC/CI transport | I²C through `IOAVService` (private IOKit symbols on Apple Silicon), matched to each screen through the IORegistry and its EDID |
+| Software disconnect | `CGSConfigureDisplayEnabled` (undocumented), applied for the app only. Other screens don't blank, and macOS reconnects the screen when the app quits. |
+| Software dimming | Display gamma tables (`CGSetDisplayTransferByTable`) |
+| Resolution | Scaled modes from `CGDisplayCopyAllDisplayModes`, applied with `CGConfigureDisplayWithDisplayMode` |
+| Monitor speakers | Core Audio identifies HDMI or DisplayPort output without a volume control; the volume is set over DDC/CI |
+| Brightness keys | `IOHIDManager` reads keyboards' brightness usages; a `CGEventTap` handles system media-key events |
+| Start at Login | `SMAppService` |
+
+The DDC/CI approach on Apple Silicon follows the open-source
+[m1ddc](https://github.com/waydabber/m1ddc) and
+[MonitorControl](https://github.com/MonitorControl/MonitorControl) projects.
+
+## Privacy and safety
+
+- **No network access.** Switchboard makes no network connections and collects
+  no data.
+- **Keyboard access is narrow.** Switchboard only acts on brightness, volume
+  and mute keys. Every other key passes through untouched and is never stored
+  or logged.
+- **Nothing gets stuck.** A disconnected screen comes back when Switchboard
+  quits, even if it crashes. Software dimming is undone the same way. The last
+  screen that's still on can't be switched off.
+- **Reversible.** **Reset to Defaults** reconnects every screen, removes
+  dimming, wakes monitors from standby and clears all settings.
+- **Undocumented interfaces.** DDC/CI on Apple Silicon and the software
+  disconnect use private macOS functions. A future macOS update could change
+  them, in which case those features stop working; the rest of the app is
+  unaffected.
+
+## Troubleshooting
+
+Switchboard writes to the macOS unified log. To watch it while you reproduce a
+problem:
+
+```bash
+log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"'
+```
+
+| Problem | What to do |
+|---|---|
+| Keyboard keys do nothing | Check **Settings → Keyboard Keys**. A permission notice there links to the right page. If you've updated the app, turn Switchboard off and on again in both permission lists. Quit other display utilities. |
+| *Not responding to DDC/CI* | Turn on DDC/CI in the monitor's own menu, or try another cable, port or adapter. Use **Switch Off By → Disconnecting** for monitors without DDC/CI. |
+| Only a *Brightness (Software)* slider | The monitor didn't answer DDC/CI read requests. Look for `No reply reading VCP` in the log. |
+| A control affects the wrong monitor | Each DDC/CI lookup logs every candidate port with its EDID UUID and match score. [Open an issue](https://github.com/BireshwarChakravarty/SwitchBoard/issues/new/choose) with those lines. |
+| *Couldn't disconnect* | macOS rejected the software disconnect. Please open an issue with the log. |
+| A screen stays off | Quit Switchboard: macOS reconnects it. If that doesn't help, run `/Applications/Switchboard.app/Contents/MacOS/Switchboard --reset`, or log out and back in. |
+
+## Uninstalling
+
+Quit Switchboard from its menu (this reconnects and restores every screen),
+then run:
+
+```bash
+rm -rf /Applications/Switchboard.app
+defaults delete app.switchboard.Switchboard
+tccutil reset Accessibility app.switchboard.Switchboard
+tccutil reset ListenEvent app.switchboard.Switchboard
+```
+
+If a **Switchboard** entry remains in System Settings → General → Login Items,
+remove it there.
+
+## Building from source
+
+Requirements: macOS 26 and the Swift toolchain. The free Command Line Tools
+are enough (`xcode-select --install`); full Xcode isn't required.
 
 ```bash
 git clone https://github.com/BireshwarChakravarty/SwitchBoard.git
@@ -74,166 +252,59 @@ cd SwitchBoard
 ./make-app.sh
 ```
 
-`make-app.sh` builds the app, signs it for your Mac, and does a **clean
-install** into `/Applications`. Before installing, it undoes anything an
-earlier copy did: it reconnects screens, removes dimming, and deletes old
-settings and permissions. Then it launches Switchboard. To update, `git pull`
-and run it again.
+`make-app.sh` builds a release binary, wraps it in `Switchboard.app`, signs it
+ad hoc, and performs a clean install into `/Applications`. Any earlier copy is
+quit, its changes to your screens are undone, and its settings and permissions
+are cleared before the new app launches.
 
-On first launch Switchboard turns on **Start at Login**, and asks for the two
-permissions the keyboard keys need (see below).
-
-Every change is built and tested automatically on macOS 26 (GitHub Actions),
-and each release includes the built app.
-
-## Using it
-
-Click the monitor-and-switch icon in the menu bar. The menu is laid out like
-Control Center:
-
-| Section | What it does |
+| Command | Purpose |
 |---|---|
-| **Screens** | Every screen, with its status ("Mirrored to …", "Disconnected") and a power switch. Click a screen to show its controls. |
-| **Selected screen** | Large sliders for **Brightness (Combined)**, **Contrast**, **Volume** and **Resolution**, with live values. **⋯** opens the screen's options. |
-| **Brightness · All Screens** | One slider for every screen (shown with two or more) |
-| **Settings** | Keyboard Keys, Match Light & Dark Mode, Start at Login |
-| ↺ ⟳ ⏻ | Reset to Defaults (asks first), Refresh Screens, Quit |
+| `swift build` | Debug build |
+| `swift test` | Unit tests |
+| `swift run` | Run without installing |
+| `./make-app.sh` | Build and install into `/Applications` |
+| `./make-app.sh --package` | Build `dist/Switchboard.zip` without installing |
 
-The last screen still on has no power switch, so you can't switch every
-screen off.
+Every push is built and tested on macOS 26 by
+[GitHub Actions](.github/workflows/build.yml), and releases are published from
+the same workflow.
 
-**Screen options** (**⋯** on the selected screen, or right-click a screen):
-
-- **Switch Off By**: Switchboard picks this itself, but you can override it.
-  - **DDC/CI Standby**: the monitor sleeps (needs DDC/CI).
-  - **Disconnecting**: macOS stops using the screen; other screens stay on.
-  - **Blacking Out**: the picture goes black and the backlight stays on.
-
-  The first time a monitor doesn't answer DDC/CI, Switchboard switches it to
-  disconnecting and remembers that.
-- **Switch Off While Locked or Asleep**.
-- **Hide Power Switch / Show Power Switch**: for a screen you never turn off.
-- **Restore Factory Brightness & Contrast** (DDC/CI monitors): asks the
-  monitor to restore its own factory brightness and contrast.
-
-### Keyboard keys
-
-Brightness keys (and volume keys, for monitor speakers) are on from the first
-launch. They need two permissions, which Switchboard asks for on launch:
-
-| Permission (Privacy & Security) | Why |
-|---|---|
-| **Input Monitoring** | Reads Apple keyboards' brightness keys (F1/F2 on a Magic Keyboard). macOS handles these inside its keyboard driver, so on a Mac mini no app sees them otherwise. |
-| **Device Control and Data Access** (called Accessibility before macOS 27) | Catches volume keys, and brightness keys from keyboards that send them as events. |
-
-Turn **Switchboard** on in both lists. The keys start working within a couple
-of seconds, with no relaunch. Until then **Settings → Keyboard Keys** shows
-which access is missing, with a button straight to that page.
-
-- The line under **Keyboard Keys** shows what's happening, for example
-  "Listening · press a brightness key" or "Brightness Up → XV272K V5 · 65%".
-- F1/F2 follow your fn setting: hold **fn** for normal F1/F2 (or the reverse,
-  if "Use F1, F2, etc. keys as standard function keys" is on).
-- Each press moves brightness one of 16 steps, like a built-in screen; hold
-  **⇧⌥** for 64 finer steps. Holding a key keeps stepping. An indicator
-  appears at the top right. macOS may still show its own "not supported"
-  indicator for Apple keyboards, because reading the keyboard can't stop it.
-- Keys adjust the monitor under the pointer, together with any screen
-  mirroring it. If that screen can't be adjusted, they adjust your other
-  monitors.
-- Brightness keys use the combined scale: DDC/CI monitors change their real
-  backlight, then keep dimming in software below its minimum. Screens never
-  go fully black.
-- Volume and mute keys act on a monitor only when sound plays through its
-  speakers over HDMI or DisplayPort, which macOS can't adjust. Otherwise they
-  work as usual.
-- Quit other display apps (BetterDisplay, MonitorControl, Lunar): they catch
-  the same keys.
-
-If you rebuild the app yourself, macOS treats it as a new app. `make-app.sh`
-clears the old permissions, so grant them again when asked.
-
-## How it works
-
-| Feature | Mechanism |
-|---|---|
-| Standby / wake | DDC/CI *Set VCP Feature* `0xD6` (power mode): `0x05` standby, `0x01` on |
-| Brightness / contrast / volume | DDC/CI VCP `0x10` / `0x12` / `0x62`, read with *Get VCP Feature* |
-| DDC transport | `IOAVService` I²C on Apple Silicon (private IOKit symbols), matched to each screen through the IORegistry and its EDID |
-| Disconnect | `CGSConfigureDisplayEnabled` (undocumented), applied for the app only: other screens don't blank, and macOS reconnects the screen if the app quits |
-| Black out | The screen's gamma table scaled to zero, with a check that no other screen went black with it |
-| Dimming | Display gamma tables (`CGSetDisplayTransferByTable`), below the hardware minimum for DDC/CI monitors |
-| Resolution | `CGDisplayCopyAllDisplayModes` scaled modes, applied with `CGConfigureDisplayWithDisplayMode` |
-| Monitor speakers | Core Audio detects HDMI/DisplayPort output without volume control; volume is set over DDC/CI |
-| Keyboard keys | `IOHIDManager` reads keyboards' brightness usages (Input Monitoring); a `CGEventTap` at the HID level catches system-defined key events (volume, other keyboards); indicator is a Liquid Glass `NSPanel` |
-| Start at Login | `SMAppService` |
-
-The DDC approach is the one used by the open-source
-[m1ddc](https://github.com/waydabber/m1ddc) and
-[MonitorControl](https://github.com/MonitorControl/MonitorControl) projects.
-Switchboard is an independent project, not affiliated with them or with
-BetterDisplay.
-
-## Troubleshooting
-
-Switchboard logs to the unified system log. Watch it live while you
-reproduce a problem:
-
-```bash
-log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"'
-```
-
-- **Keyboard keys do nothing**: check Switchboard is on under Privacy &
-  Security → Device Control and Data Access (after a rebuild, turn it off and
-  on). Quit BetterDisplay or other display apps: they catch the keys first. In the
-  log, `Keys: listening` means the keys are being caught, and each press logs
-  `Key brightnessUp` (or similar). If presses never appear, your keyboard
-  doesn't send standard brightness keys.
-- **"Not responding to DDC/CI"**: the monitor didn't answer. Enable DDC/CI in
-  its menu, try another port or cable, or use **Switch Off By →
-  Disconnecting**.
-- **No sliders for a DDC monitor**: it didn't answer the read requests. Look
-  for `no reply reading VCP` in the log; it gets a Dim slider instead.
-- **A switch controls the wrong screen**: each DDC lookup logs every candidate
-  port with its `EDID UUID` and match score. Please open an issue with those
-  lines.
-- **"Couldn't disconnect"**: macOS refused the software disconnect.
-- **A screen stays off after a problem**: run
-  `/Applications/Switchboard.app/Contents/MacOS/Switchboard --reset`, or log
-  out and back in.
-
-## Building from source
+### Project structure
 
 ```text
 Sources/Switchboard/
-├── SwitchboardApp.swift      Menu-bar UI (Liquid Glass cards, rows, sliders)
-├── DisplayController.swift   Screen list, switching, sliders, keys, automation
-├── Arm64DDC.swift            DDC/CI over IOAVService (Apple Silicon)
-├── DDC.swift                 VCP codes, packets, checksums, reply parsing
-├── IOKitPrivate.swift        Bindings for the private IOAVService symbols
-├── SoftwareDisconnect.swift  Software disconnect / reconnect
+├── SwitchboardApp.swift      Menu-bar app and user interface
+├── DisplayController.swift   Screen list, power, brightness, keys and automation
+├── Arm64DDC.swift            DDC/CI over IOAVService
+├── DDC.swift                 VCP codes, packets, checksums and reply parsing
+├── IOKitPrivate.swift        Bindings for the private IOAVService functions
+├── SoftwareDisconnect.swift  Software disconnect and reconnect
 ├── SoftwareDimmer.swift      Gamma-table dimming
-├── MediaKeys.swift           Brightness and volume key event tap
-├── KeyboardReader.swift      Reads brightness keys straight from keyboards
-├── LevelHUD.swift            On-screen brightness/volume indicator
-├── BrightnessCurve.swift     Combined hardware + software brightness scale
+├── BrightnessCurve.swift     Combined hardware and software brightness scale
 ├── DisplayModes.swift        Resolutions
-├── AudioOutput.swift         Detects monitor speakers macOS can't adjust
-├── Displays.swift            CoreGraphics display lists
-├── Preferences.swift         Per-screen and app settings
-├── Reset.swift               Restore every screen (`--reset`, Reset to Defaults)
+├── KeyboardReader.swift      Brightness keys read from keyboards (IOHIDManager)
+├── MediaKeys.swift           Media-key event tap
+├── LevelHUD.swift            On-screen brightness and volume indicator
+├── AudioOutput.swift         Detects monitor speakers without volume control
+├── Displays.swift            Display lists
+├── Preferences.swift         Settings
+├── Reset.swift               Restores every screen (--reset, Reset to Defaults)
 ├── LoginItem.swift           Start at Login
-└── MenuBarIcon.swift         The menu-bar icon, drawn in code
-Resources/
-├── Info.plist
-├── AppIcon.icns              App icon (source: AppIcon.svg)
-└── AppIcon.png
+├── Log.swift                 Unified logging
+└── MenuBarIcon.swift         Menu-bar icon, drawn in code
+Tests/SwitchboardTests/       Unit tests
+Resources/                    Info.plist and app icon (AppIcon.svg is the source)
 ```
 
-The code doesn't use SwiftUI's `@State`. On recent SDKs it's a compiler macro
-whose plugin ships only with full Xcode, so avoiding it keeps the app
-buildable with just the Command Line Tools.
+## Contributing
+
+Bug reports and pull requests are welcome. Please read
+[CONTRIBUTING.md](CONTRIBUTING.md) first, and include your macOS version,
+monitor models and how they're connected when reporting a problem.
 
 ## License
 
-[MIT](LICENSE)
+Switchboard is released under the [MIT License](LICENSE).
+
+Switchboard is an independent project. It isn't affiliated with Apple, or with
+BetterDisplay, MonitorControl or Lunar.

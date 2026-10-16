@@ -53,7 +53,7 @@ final class DisplayController: ObservableObject {
     /// (needed to read Apple keyboards' brightness keys).
     @Published private(set) var inputMonitoringNeeded = false
     /// What the keyboard keys are doing, shown under Keyboard Keys, e.g.
-    /// "Listening · press a brightness key" or "Brightness Up → XV272K · 65%".
+    /// "Listening · press a brightness key" or "Brightness Up → DELL U2723QE · 65%".
     @Published private(set) var keysStatus: String?
     /// Brightness follows Light/Dark mode (see Preferences.brightnessFollowsAppearance).
     @Published private(set) var brightnessFollowsAppearance = Preferences.brightnessFollowsAppearance

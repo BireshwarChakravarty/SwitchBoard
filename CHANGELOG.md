@@ -1,0 +1,36 @@
+# Changelog
+
+All notable changes to Switchboard are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
+[Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Changed
+- Rewrote the README and added contributor documentation, issue templates and
+  a security policy.
+- Updated the CI checkout action to a Node 24 version, and enabled Dependabot
+  for workflow updates.
+- Added `CFBundleInfoDictionaryVersion` to the app's Info.plist.
+
+## [1.0.0] - 2026-10-16
+
+First public release.
+
+### Added
+- Power switch for every external screen: DDC/CI standby, or a software
+  disconnect for monitors without DDC/CI. Other screens stay on.
+- Combined brightness (DDC/CI backlight with software dimming below its
+  minimum), contrast, volume and resolution controls, plus an All Screens
+  brightness slider.
+- Brightness keys for external screens, including Apple keyboards, with an
+  on-screen indicator; volume and mute keys for monitor speakers.
+- Match Light & Dark Mode, switch off while locked or asleep, Start at Login.
+- Restore a monitor's factory brightness and contrast, or all its factory
+  settings, with a check that the monitor responded.
+- Reset to Defaults, and a `--reset` command-line option.
+- Liquid Glass interface modelled on Control Center.
+- Unit tests and continuous integration on macOS 26.
+
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/BireshwarChakravarty/SwitchBoard/releases/tag/v1.0.0

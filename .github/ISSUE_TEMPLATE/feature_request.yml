@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest an improvement or a new feature.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: Describe the problem or the task, rather than a specific solution.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: How could Switchboard help?
+  - type: textarea
+    id: setup
+    attributes:
+      label: Your setup
+      description: Mac, macOS version, and monitors, if relevant.

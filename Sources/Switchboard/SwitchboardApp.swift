@@ -154,7 +154,7 @@ private struct ScreenRow: View {
     }
 }
 
-/// "Mirrored to ARZOPA", "Standby", or a problem in orange.
+/// "Mirrored to …", "Standby", or a problem in orange.
 private struct StatusLine: View {
     let display: ManagedDisplay
 
