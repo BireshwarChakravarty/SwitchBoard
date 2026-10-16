@@ -54,6 +54,10 @@ final class DisplayController: ObservableObject {
     @Published private(set) var keysStatus: String?
     /// Brightness follows Light/Dark mode (see Preferences.brightnessFollowsAppearance).
     @Published private(set) var brightnessFollowsAppearance = Preferences.brightnessFollowsAppearance
+    /// The screen whose controls the menu shows (nil: pick a sensible one).
+    @Published private(set) var selectedDisplayID: CGDirectDisplayID?
+    /// Whether the Settings section of the menu is expanded.
+    @Published private(set) var settingsExpanded = false
     /// Reset to Defaults was clicked and awaits confirmation.
     @Published private(set) var confirmingReset = false
 
@@ -587,7 +591,7 @@ final class DisplayController: ObservableObject {
         if !keys.isRunning {
             keysStatus = nil
         } else if keysStatus == nil {
-            keysStatus = "Listening · press a brightness key"
+            keysStatus = "Listening (\(keys.level ?? "?") level) · press a brightness key"
         }
         if waiting, permissionTimer == nil {
             permissionTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
@@ -760,6 +764,31 @@ final class DisplayController: ObservableObject {
                 if intents[display.id] == false { autoSwitchedOff.insert(display.id) }
             }
         }
+    }
+
+    // MARK: Menu state
+
+    /// The screen whose controls are shown: the one picked, else the first
+    /// external screen that's on, else the first screen.
+    var selectedDisplay: ManagedDisplay? {
+        if let id = selectedDisplayID, let display = displays.first(where: { $0.id == id }) {
+            return display
+        }
+        return displays.first { $0.isOn && !$0.isBuiltIn } ?? displays.first
+    }
+
+    func select(_ id: CGDirectDisplayID) {
+        selectedDisplayID = id
+    }
+
+    func toggleSettings() {
+        settingsExpanded.toggle()
+    }
+
+    /// "Switchboard 1.0" from the bundle (just "Switchboard" under `swift run`).
+    var versionLabel: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        return version.map { "Version \($0)" } ?? "Development build"
     }
 
     // MARK: Reset to Defaults

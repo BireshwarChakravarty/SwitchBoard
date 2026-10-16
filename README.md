@@ -81,36 +81,31 @@ To update, `git pull` and run `./make-app.sh` again.
 
 ## Using it
 
-Click the monitor-and-switch icon in the menu bar.
+Click the monitor-and-switch icon in the menu bar. The menu is laid out like
+Control Center:
 
-| Control | What it does |
+| Section | What it does |
 |---|---|
-| Switch next to a screen | Switch it off (standby or disconnect) and on again |
-| Sliders under a screen | Brightness (combined), contrast, volume, resolution |
-| **All Screens** | One brightness slider for every screen (shown with two or more) |
-| **Keyboard Keys** | Brightness keys adjust your monitors; volume keys adjust monitor speakers (on by default) |
-| **Match Light & Dark Mode** | Each screen keeps a brightness per appearance and switches with macOS |
-| **Start at Login** | Launch Switchboard when you log in |
-| ↺ (counter-clockwise arrow) | Reset to Defaults (asks first) |
-| ⟳ (clockwise arrow) | Re-scan screens |
-| ⏻ (power) | Quit; reconnects and restores every screen first |
+| **Screens** | Every screen, with its status ("Mirrored to …", "Disconnected") and a power switch. Click a screen to show its controls. |
+| **Selected screen** | Large sliders for **Brightness (Combined)**, **Contrast**, **Volume** and **Resolution**, with live values. **⋯** opens the screen's options. |
+| **Brightness · All Screens** | One slider for every screen (shown with two or more) |
+| **Settings** | Keyboard Keys, Match Light & Dark Mode, Start at Login |
+| ↺ ⟳ ⏻ | Reset to Defaults (asks first), Refresh Screens, Quit |
 
-**Right-click a screen** for its options:
+The last screen still on has no power switch, so you can't switch every
+screen off.
 
-- **Hide Switch / Show Switch**: hide the switch of a screen you never turn off.
+**Screen options** (**⋯** on the selected screen, or right-click a screen):
+
 - **Switch Off By**: Switchboard picks this itself, but you can override it.
   - **DDC/CI Standby**: the monitor sleeps (needs DDC/CI).
-  - **Blacking Out (instant)**: the picture goes black and the backlight stays
-    on. Nothing else on screen changes, so mirrors don't make other screens
-    blank.
-  - **Disconnecting**: macOS stops using the screen and windows move off it.
-    Any screen it mirrors, or that mirrors it, blanks briefly while macOS
-    reconfigures.
+  - **Disconnecting**: macOS stops using the screen; other screens stay on.
+  - **Blacking Out**: the picture goes black and the backlight stays on.
 
   The first time a monitor doesn't answer DDC/CI, Switchboard switches it to
-  disconnecting and remembers that. It only blacks a screen out if you choose
-  that.
+  disconnecting and remembers that.
 - **Switch Off While Locked or Asleep**.
+- **Hide Power Switch / Show Power Switch**: for a screen you never turn off.
 - **Restore Factory Brightness & Contrast** (DDC/CI monitors): asks the
   monitor to restore its own factory brightness and contrast.
 
@@ -125,11 +120,12 @@ launch:
 2. Turn on **Switchboard** under Privacy & Security → Accessibility.
 
 The keys start working within a couple of seconds, with no relaunch needed.
-Until then the Keyboard Keys row shows **Needs Accessibility access**, with a
-button straight to that setting.
+Until then the Keyboard Keys row (under **Settings**) shows **Needs
+Accessibility access**, with a button straight to that setting.
 
 - The line under **Keyboard Keys** shows what's happening, for example
-  "Listening · press a brightness key" or "Brightness Up → XV272K V5 · 65%".
+  "Listening (HID level) · press a brightness key" or
+  "Brightness Up → XV272K V5 · 65%".
   It also shows when a key arrives but there's nothing to adjust.
 - Brightness keys that arrive as **F14/F15** (as on some keyboards) work too.
 - Each press moves brightness one of 16 steps, like a built-in screen; hold
@@ -159,7 +155,7 @@ the old permission, so grant it again when asked.
 | Dimming | Display gamma tables (`CGSetDisplayTransferByTable`), below the hardware minimum for DDC/CI monitors |
 | Resolution | `CGDisplayCopyAllDisplayModes` scaled modes, applied with `CGConfigureDisplayWithDisplayMode` |
 | Monitor speakers | Core Audio detects HDMI/DisplayPort output without volume control; volume is set over DDC/CI |
-| Keyboard keys | A `CGEventTap` on the system-defined brightness and volume key events; indicator is a Liquid Glass `NSPanel` |
+| Keyboard keys | A `CGEventTap` at the HID level (falling back to the session level) on the system-defined brightness and volume key events; indicator is a Liquid Glass `NSPanel` |
 | Start at Login | `SMAppService` |
 
 The DDC approach is the one used by the open-source

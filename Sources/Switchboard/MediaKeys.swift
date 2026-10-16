@@ -12,11 +12,16 @@ enum MediaKey {
 /// Makes the keyboard's brightness keys (and, for monitor speakers, the
 /// volume keys) control the monitors.
 ///
-/// A Mac mini has no screen of its own, so macOS ignores brightness keys
-/// ("not supported"), and it can't set the volume of a monitor's speakers.
-/// We intercept those keys with an event tap, which needs Accessibility
-/// permission (System Settings → Privacy & Security → Accessibility). Keys we
-/// can't act on pass through to macOS untouched.
+/// A Mac mini has no screen of its own, so macOS answers brightness keys with
+/// "not supported", and it can't set the volume of a monitor's speakers. We
+/// intercept those keys with an event tap, which needs Accessibility
+/// permission (System Settings → Privacy & Security → Accessibility).
+///
+/// The tap sits at the **HID level**, where key events enter the system,
+/// before the window server acts on them. A session-level tap sees them too
+/// late on recent macOS: the brightness keys have already been handled (and
+/// the "not supported" indicator shown). If the HID level is refused, it falls
+/// back to the session level. Keys we can't act on pass through untouched.
 @MainActor
 final class MediaKeys {
     /// Whether we act on this key aimed at this screen; if not, macOS gets it.
@@ -30,6 +35,9 @@ final class MediaKeys {
 
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
+
+    /// Where the tap listens: "HID" or "session", nil when not listening.
+    private(set) var level: String?
 
     var isRunning: Bool { tap != nil }
 
@@ -46,36 +54,44 @@ final class MediaKeys {
     @discardableResult
     func start() -> Bool {
         guard tap == nil else { return true }
+
         // NX_SYSDEFINED (14) carries the media, volume and brightness keys;
         // key down/up catch F14/F15, which are brightness keys on some keyboards.
         let mask = CGEventMask(1 << 14)
             | CGEventMask(1 << CGEventType.keyDown.rawValue)
             | CGEventMask(1 << CGEventType.keyUp.rawValue)
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .defaultTap,
-            eventsOfInterest: mask,
-            callback: { _, type, event, userInfo in
-                guard let userInfo else { return Unmanaged.passUnretained(event) }
-                let keys = Unmanaged<MediaKeys>.fromOpaque(userInfo).takeUnretainedValue()
-                // The tap's run-loop source is on the main run loop.
-                let swallow = MainActor.assumeIsolated { keys.handle(type: type, event: event) }
-                return swallow ? nil : Unmanaged.passUnretained(event)
-            },
-            userInfo: Unmanaged.passUnretained(self).toOpaque()
-        ) else {
-            Log.app.notice("Keys: event tap refused (Accessibility permission missing)")
-            return false
-        }
+        let levels: [(CGEventTapLocation, String)] = [(.cghidEventTap, "HID"), (.cgSessionEventTap, "session")]
 
-        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
-        self.tap = tap
-        self.source = source
-        Log.app.info("Keys: listening")
-        return true
+        for (location, name) in levels {
+            guard let tap = CGEvent.tapCreate(
+                tap: location,
+                place: .headInsertEventTap,
+                options: .defaultTap,
+                eventsOfInterest: mask,
+                callback: { _, type, event, userInfo in
+                    guard let userInfo else { return Unmanaged.passUnretained(event) }
+                    let keys = Unmanaged<MediaKeys>.fromOpaque(userInfo).takeUnretainedValue()
+                    // The tap's run-loop source is on the main run loop.
+                    let swallow = MainActor.assumeIsolated { keys.handle(type: type, event: event) }
+                    return swallow ? nil : Unmanaged.passUnretained(event)
+                },
+                userInfo: Unmanaged.passUnretained(self).toOpaque()
+            ) else {
+                Log.app.notice("Keys: \(name, privacy: .public)-level tap refused")
+                continue
+            }
+
+            let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+            CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+            CGEvent.tapEnable(tap: tap, enable: true)
+            self.tap = tap
+            self.source = source
+            self.level = name
+            Log.app.info("Keys: listening at the \(name, privacy: .public) level")
+            return true
+        }
+        Log.app.notice("Keys: no event tap allowed (Accessibility permission missing)")
+        return false
     }
 
     func stop() {
@@ -85,6 +101,7 @@ final class MediaKeys {
         CFMachPortInvalidate(tap)
         self.tap = nil
         self.source = nil
+        self.level = nil
         Log.app.info("Keys: stopped")
     }
 
@@ -96,19 +113,13 @@ final class MediaKeys {
             return false
         }
         guard let press = Self.decode(type: type, event: event) else { return false }
-        let key = press.key
         if press.isKeyDown && !press.isRepeat {
-            onSeen?(key, press.code)
+            onSeen?(press.key, press.code)
         }
-        guard let key else { return false }
+        guard let key = press.key else { return false }
 
         let displayID = Self.displayUnderPointer() ?? CGMainDisplayID()
-        guard canHandle?(key, displayID) == true else {
-            if key.isBrightness {
-                Log.app.notice("Brightness key: no adjustable screen yet, passing to macOS")
-            }
-            return false
-        }
+        guard canHandle?(key, displayID) == true else { return false }
         if press.isKeyDown && !(key == .mute && press.isRepeat) {
             Log.app.debug("Key \(String(describing: key), privacy: .public)\(press.fine ? " (fine)" : "", privacy: .public) on display \(displayID)")
             onPress?(key, press.fine, displayID)
