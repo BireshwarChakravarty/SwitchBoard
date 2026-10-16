@@ -219,11 +219,19 @@ private struct ScreenOptions: View {
             }
             if display.brightness != nil || display.contrast != nil {
                 Divider()
-                Button("Restore Factory Brightness & Contrast") {
-                    controller.restoreFactoryPicture(for: display.id)
-                }
-                Button("Restore All Factory Settings") {
-                    controller.restoreFactoryPicture(for: display.id, everything: true)
+                if controller.isFactoryResetUnsupported(display.id) {
+                    if display.contrast != nil {
+                        Button("Set Contrast to 50%") {
+                            controller.setTypicalContrast(for: display.id)
+                        }
+                    }
+                } else {
+                    Button("Restore Factory Brightness & Contrast") {
+                        controller.restoreFactoryPicture(for: display.id)
+                    }
+                    Button("Restore All Factory Settings") {
+                        controller.restoreFactoryPicture(for: display.id, everything: true)
+                    }
                 }
             }
         }
@@ -269,16 +277,30 @@ private struct ScreenOptionsPanel: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Factory Settings")
                         .font(.subheadline.weight(.medium))
-                    HStack(spacing: 8) {
-                        Button("Restore Brightness & Contrast") {
-                            controller.restoreFactoryPicture(for: display.id)
+                    if controller.isFactoryResetUnsupported(display.id) {
+                        Text("This monitor doesn't support factory resets over DDC/CI. Use its own menu to reset it, or set a typical contrast here.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if display.contrast != nil {
+                            Button("Set Contrast to 50%") {
+                                controller.setTypicalContrast(for: display.id)
+                            }
+                            .buttonStyle(.glass)
+                            .controlSize(.small)
                         }
-                        Button("Restore All Settings") {
-                            controller.restoreFactoryPicture(for: display.id, everything: true)
+                    } else {
+                        HStack(spacing: 8) {
+                            Button("Restore Brightness & Contrast") {
+                                controller.restoreFactoryPicture(for: display.id)
+                            }
+                            Button("Restore All Settings") {
+                                controller.restoreFactoryPicture(for: display.id, everything: true)
+                            }
                         }
+                        .buttonStyle(.glass)
+                        .controlSize(.small)
                     }
-                    .buttonStyle(.glass)
-                    .controlSize(.small)
                 }
             }
         }

@@ -6,6 +6,14 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-16
+
+### Changed
+- When a monitor ignores **Restore All Settings**, Switchboard remembers that
+  it doesn't support DDC/CI factory resets. Its options then explain this and
+  offer **Set Contrast to 50%** (the usual factory contrast) instead of resets
+  that can't work. Reset to Defaults clears this.
+
 ## [1.0.1] - 2026-10-16
 
 ### Fixed
@@ -43,6 +51,7 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/BireshwarChakravarty/SwitchBoard/releases/tag/v1.0.0

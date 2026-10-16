@@ -25,6 +25,7 @@ enum Preferences {
     static let disconnectedKey = "disconnectedDisplayIDs"
     private static let brightnessKeysKey = "brightnessKeysEnabled"
     private static let followAppearanceKey = "brightnessFollowsAppearance"
+    private static let factoryResetUnsupportedKey = "factoryResetUnsupported"
     private static let appearanceBrightnessKey = "appearanceBrightness"
 
     static func offMethod(for monitor: String) -> OffMethod {
@@ -66,6 +67,16 @@ enum Preferences {
         // On unless turned off: on a Mac mini the keys do nothing otherwise.
         get { defaults.object(forKey: brightnessKeysKey) as? Bool ?? true }
         set { defaults.set(newValue, forKey: brightnessKeysKey) }
+    }
+
+    /// The monitor ignored DDC/CI's factory-reset commands, so the app offers
+    /// a typical default instead.
+    static func factoryResetUnsupported(for monitor: String) -> Bool {
+        defaults.dictionary(forKey: factoryResetUnsupportedKey)?[monitor] as? Bool ?? false
+    }
+
+    static func setFactoryResetUnsupported(_ unsupported: Bool, for monitor: String) {
+        set(unsupported, for: monitor, in: factoryResetUnsupportedKey)
     }
 
     /// Each screen remembers one brightness for Light mode and one for Dark
@@ -110,7 +121,7 @@ enum Preferences {
     /// Forget every setting (Reset to Defaults).
     static func resetAll() {
         for key in [offMethodKey, offMethodAutomaticKey, switchVisibleKey, autoOffKey, disconnectedKey, brightnessKeysKey,
-                    followAppearanceKey, appearanceBrightnessKey] {
+                    followAppearanceKey, appearanceBrightnessKey, factoryResetUnsupportedKey] {
             defaults.removeObject(forKey: key)
         }
     }

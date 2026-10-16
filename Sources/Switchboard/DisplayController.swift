@@ -491,6 +491,10 @@ final class DisplayController: ObservableObject {
                 guard let self else { return }
                 let outcome = FactoryRestoreOutcome.evaluate(sent: sent, before: before, after: result)
                 Log.ddc.info("Factory restore on \(identity.name, privacy: .public): \(String(describing: outcome), privacy: .public)")
+                if everything, case .ignored = outcome {
+                    // The stronger command didn't work either: stop offering resets.
+                    Preferences.setFactoryResetUnsupported(true, for: identity.key)
+                }
                 let message = outcome.message
                 if message.isProblem {
                     self.notices[id] = nil
@@ -503,6 +507,22 @@ final class DisplayController: ObservableObject {
                 self.refresh()
             }
         }
+    }
+
+    /// Whether this monitor ignored the factory-reset commands.
+    func isFactoryResetUnsupported(_ id: CGDirectDisplayID) -> Bool {
+        guard let key = identities[id]?.key else { return false }
+        return Preferences.factoryResetUnsupported(for: key)
+    }
+
+    /// The usual factory contrast, for monitors that can't reset themselves.
+    func setTypicalContrast(for id: CGDirectDisplayID) {
+        guard let contrast = ddcValues[id]?[VCP.contrast] else { return }
+        setVCP(VCP.contrast, to: UInt16((Double(contrast.max) / 2).rounded()), for: id)
+        problems[id] = nil
+        notices[id] = "Contrast set to 50%"
+        clearNotice(for: id, after: 6, ifStill: "Contrast set to 50%")
+        refresh()
     }
 
     /// Remove a notice after a while, unless something replaced it.

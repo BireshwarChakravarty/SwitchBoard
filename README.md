@@ -153,7 +153,9 @@ or by right-clicking a screen in the list.
 
 Both factory commands are optional in the DDC/CI standard. Switchboard reads
 the monitor's settings back afterwards and shows the result under the screen's
-name: the restored values, or that the monitor ignored the request.
+name: the restored values, or that the monitor ignored the request. If a
+monitor ignores **Restore All Settings**, Switchboard stops offering resets for
+it and offers **Set Contrast to 50%**, the usual factory contrast, instead.
 
 ### Keyboard keys
 
