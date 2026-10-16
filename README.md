@@ -111,11 +111,6 @@ Click the monitor-and-switch icon in the menu bar.
   disconnecting and remembers that. It only blacks a screen out if you choose
   that.
 - **Switch Off While Locked or Asleep**.
-- **Disconnect Style** (applies to every screen): Standard, Keep Other
-  Screens' Modes, Unmirror First, Hold Fade, App Only or Permanent. These are different ways to
-  disconnect a screen while trying to keep the other screens from blanking,
-  since macOS no longer allows turning the transition fade off. The log
-  records which style was used and how long each change took.
 - **Restore Factory Brightness & Contrast** (DDC/CI monitors): asks the
   monitor to restore its own factory brightness and contrast.
 
@@ -159,7 +154,7 @@ the old permission, so grant it again when asked.
 | Standby / wake | DDC/CI *Set VCP Feature* `0xD6` (power mode): `0x05` standby, `0x01` on |
 | Brightness / contrast / volume | DDC/CI VCP `0x10` / `0x12` / `0x62`, read with *Get VCP Feature* |
 | DDC transport | `IOAVService` I²C on Apple Silicon (private IOKit symbols), matched to each screen through the IORegistry and its EDID |
-| Disconnect | `CGSConfigureDisplayEnabled` (undocumented), applied for the login session only |
+| Disconnect | `CGSConfigureDisplayEnabled` (undocumented), applied for the app only: other screens don't blank, and macOS reconnects the screen if the app quits |
 | Black out | The screen's gamma table scaled to zero, with a check that no other screen went black with it |
 | Dimming | Display gamma tables (`CGSetDisplayTransferByTable`), below the hardware minimum for DDC/CI monitors |
 | Resolution | `CGDisplayCopyAllDisplayModes` scaled modes, applied with `CGConfigureDisplayWithDisplayMode` |

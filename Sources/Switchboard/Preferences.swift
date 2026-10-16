@@ -24,7 +24,6 @@ enum Preferences {
     private static let autoOffKey = "autoOffWhenLockedOrAsleep"
     static let disconnectedKey = "disconnectedDisplayIDs"
     private static let brightnessKeysKey = "brightnessKeysEnabled"
-    private static let disconnectStyleKey = "disconnectStyle"
     private static let followAppearanceKey = "brightnessFollowsAppearance"
     private static let appearanceBrightnessKey = "appearanceBrightness"
 
@@ -61,12 +60,6 @@ enum Preferences {
 
     static func setAutoOff(_ enabled: Bool, for monitor: String) {
         set(enabled, for: monitor, in: autoOffKey)
-    }
-
-    /// How screens are disconnected (see SoftwareDisconnect.Style).
-    static var disconnectStyle: SoftwareDisconnect.Style {
-        get { defaults.string(forKey: disconnectStyleKey).flatMap(SoftwareDisconnect.Style.init(rawValue:)) ?? .standard }
-        set { defaults.set(newValue.rawValue, forKey: disconnectStyleKey) }
     }
 
     static var brightnessKeysEnabled: Bool {
@@ -117,7 +110,7 @@ enum Preferences {
     /// Forget every setting (Reset to Defaults).
     static func resetAll() {
         for key in [offMethodKey, offMethodAutomaticKey, switchVisibleKey, autoOffKey, disconnectedKey, brightnessKeysKey,
-                    followAppearanceKey, appearanceBrightnessKey, disconnectStyleKey] {
+                    followAppearanceKey, appearanceBrightnessKey] {
             defaults.removeObject(forKey: key)
         }
     }

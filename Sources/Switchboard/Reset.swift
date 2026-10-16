@@ -27,7 +27,7 @@ enum Reset {
             disconnected.formUnion(stored.map(\.uint32Value))
         }
         for id in disconnected {
-            SoftwareDisconnect.setEnabled(true, displayID: id)
+            SoftwareDisconnect.setEnabled(true, displayID: id, scope: .session)
         }
 
         // 2. Remove software dimming.
