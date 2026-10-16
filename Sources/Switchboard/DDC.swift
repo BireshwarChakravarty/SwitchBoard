@@ -61,8 +61,9 @@ struct DisplayIdentity: Hashable {
 /// Abstracts the per-architecture DDC transport so the UI never sees IOKit.
 ///
 /// DDC is slow (tens of milliseconds per message), so callers use these from a
-/// background serial queue, never from the main thread concurrently.
-protocol DDCController: AnyObject {
+/// background serial queue, never from the main thread concurrently. That
+/// serial queue is what makes sharing a controller across threads safe.
+protocol DDCController: AnyObject, Sendable {
     /// Set a VCP feature. Returns true if the monitor acknowledged the write.
     func write(_ vcp: UInt8, value: UInt16, for display: DisplayIdentity) -> Bool
 

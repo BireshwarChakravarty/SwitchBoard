@@ -19,7 +19,9 @@ import CoreGraphics
 ///
 /// If a toggle hits the wrong screen (or none), run the app from Terminal with
 /// `swift run`: the candidates and their scores are logged there.
-final class Arm64DDC: DDCController {
+/// `@unchecked Sendable`: its cache is only touched from DisplayController's
+/// serial DDC queue (and once from the main thread before that queue starts).
+final class Arm64DDC: DDCController, @unchecked Sendable {
 
     private struct FramebufferInfo {
         var edidUUID = ""
