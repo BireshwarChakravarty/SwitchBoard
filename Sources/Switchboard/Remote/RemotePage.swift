@@ -12,7 +12,7 @@ enum RemotePage {
       "display": "standalone",
       "background_color": "#101014",
       "theme_color": "#101014",
-      "icons": [{ "src": "/icon.png", "sizes": "180x180", "type": "image/png" }]
+      "icons": [{ "src": "/apple-touch-icon.png?v=2", "sizes": "180x180", "type": "image/png", "purpose": "any" }]
     }
     """##
 
@@ -27,7 +27,8 @@ enum RemotePage {
     <meta name="apple-mobile-web-app-title" content="Switchboard">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="color-scheme" content="light dark">
-    <link rel="apple-touch-icon" href="/icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+    <link rel="icon" type="image/png" href="/apple-touch-icon.png?v=2">
     <link rel="manifest" href="/manifest.webmanifest">
     <title>Switchboard</title>
     <style>

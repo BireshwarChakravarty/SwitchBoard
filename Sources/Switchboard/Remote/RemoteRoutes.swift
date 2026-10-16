@@ -51,7 +51,7 @@ enum RemoteRoute: Equatable {
             return get(.page)
         case ["manifest.webmanifest"]:
             return get(.manifest)
-        case ["icon.png"], ["apple-touch-icon.png"]:
+        case ["icon.png"], ["apple-touch-icon.png"], ["apple-touch-icon-precomposed.png"]:
             return get(.icon)
         case ["api", "screens"]:
             return get(.state)

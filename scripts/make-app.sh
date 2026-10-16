@@ -47,6 +47,7 @@ PLIST="$STAGE/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Add :SwitchboardVersion string $VERSION" "$PLIST"
 echo "    version $VERSION"
 cp Resources/AppIcon.icns "$STAGE/Contents/Resources/AppIcon.icns"
+cp Resources/TouchIcon.png "$STAGE/Contents/Resources/TouchIcon.png" # iPhone remote's Home Screen icon
 # Ad-hoc signing normally ties macOS privacy permissions (Input Monitoring,
 # Accessibility) to this exact build, so every update would lose them. A
 # designated requirement naming only the bundle identifier lets them carry

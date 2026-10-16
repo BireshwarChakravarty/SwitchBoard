@@ -48,7 +48,7 @@ Sources/Switchboard/
     └── Log.swift                 Unified logging categories
 Tests/SwitchboardTests/           Unit tests, one file per area
 scripts/                          make-app.sh (build/package/install), release-notes.sh
-Resources/                        Info.plist, app icon (AppIcon.svg is the source)
+Resources/                        Info.plist, app icon, iPhone Home Screen icon (SVG sources)
 ```
 
 ## How it works

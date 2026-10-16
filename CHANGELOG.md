@@ -6,6 +6,15 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-10-17
+
+### Fixed
+- The iPhone remote, added to the Home Screen, now gets Switchboard's icon
+  instead of a plain letter. It uses a dedicated full-bleed icon, because iOS
+  applies its own rounded mask and fills the Mac icon's transparent margin
+  with black. Remove the old Home Screen icon and add the page again to pick
+  it up.
+
 ## [2.0.2] - 2026-10-17
 
 ### Changed
@@ -118,7 +127,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.2...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.3...HEAD
+[2.0.3]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.3...v2.0.0

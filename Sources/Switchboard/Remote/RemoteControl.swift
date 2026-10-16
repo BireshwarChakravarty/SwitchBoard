@@ -402,9 +402,17 @@ final class RemoteControl: ObservableObject {
 
     // MARK: Helpers
 
-    /// The app icon as a 180-pixel PNG, for the iPhone Home Screen.
+    /// The iPhone Home Screen icon: the bundled full-bleed TouchIcon.png
+    /// (iOS masks it and would fill a Mac icon's transparent margin with
+    /// black). Outside an app bundle (`swift run`), the app icon is drawn
+    /// instead.
     private func icon() -> Data {
         if let iconData { return iconData }
+        if let url = Bundle.main.url(forResource: "TouchIcon", withExtension: "png"),
+           let data = try? Data(contentsOf: url) {
+            iconData = data
+            return data
+        }
         let size = NSSize(width: 180, height: 180)
         guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 180, pixelsHigh: 180,
                                          bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,

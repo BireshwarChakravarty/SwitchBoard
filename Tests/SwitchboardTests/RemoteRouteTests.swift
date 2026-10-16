@@ -11,6 +11,8 @@ final class RemoteRouteTests: XCTestCase {
         XCTAssertEqual(route("GET", ""), .success(.page))
         XCTAssertEqual(route("GET", "manifest.webmanifest"), .success(.manifest))
         XCTAssertEqual(route("GET", "icon.png"), .success(.icon))
+        XCTAssertEqual(route("GET", "apple-touch-icon.png"), .success(.icon))
+        XCTAssertEqual(route("GET", "apple-touch-icon-precomposed.png"), .success(.icon))
         XCTAssertEqual(route("GET", "api/screens"), .success(.state))
         XCTAssertEqual(route("POST", "api/pair"), .success(.pair))
     }
