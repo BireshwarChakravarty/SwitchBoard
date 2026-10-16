@@ -49,6 +49,9 @@ final class DisplayController: ObservableObject {
     @Published private(set) var brightnessKeysEnabled = Preferences.brightnessKeysEnabled
     /// Brightness keys are on but macOS hasn't granted Accessibility yet.
     @Published private(set) var brightnessKeysNeedPermission = false
+    /// Brightness keys are on but macOS hasn't granted Input Monitoring yet
+    /// (needed to read Apple keyboards' brightness keys).
+    @Published private(set) var inputMonitoringNeeded = false
     /// What the keyboard keys are doing, shown under Keyboard Keys, e.g.
     /// "Listening · press a brightness key" or "Brightness Up → XV272K · 65%".
     @Published private(set) var keysStatus: String?
@@ -67,6 +70,14 @@ final class DisplayController: ObservableObject {
     private let ddcQueue = DispatchQueue(label: "Switchboard.ddc")
     private let dimmer = SoftwareDimmer()
     private let keys = MediaKeys()
+    private let keyboard = KeyboardReader()
+    /// Brightness key currently held on the keyboard, and its repeat timer.
+    private var heldKey: MediaKey?
+    private var repeatTimer: Timer?
+    /// When each brightness key last stepped, so one press reported by two
+    /// sources (event tap and keyboard reader) counts once.
+    private var lastStep: [MediaKey: Date] = [:]
+    private var didPromptForInputMonitoring = false
     private let hud = LevelHUD()
     private var permissionTimer: Timer?
     private var didPromptForAccessibility = false
@@ -112,6 +123,10 @@ final class DisplayController: ObservableObject {
         keys.canHandle = { [weak self] key, id in self?.canHandle(key, on: id) ?? false }
         keys.onPress = { [weak self] key, fine, id in self?.handle(key, fine: fine, on: id) }
         keys.onSeen = { [weak self] key, code in self?.keySeen(key, code: code) }
+        keyboard.onKey = { [weak self] key, isDown in self?.keyboardKey(key, isDown: isDown) }
+        keyboard.onUnknown = { [weak self] page, usage in
+            self?.keysStatus = String(format: "Received key 0x%02X/0x%02X, which Switchboard doesn't use", page, usage)
+        }
         refresh()
         CGDisplayRegisterReconfigurationCallback({ _, flags, userInfo in
             // Ignore the "about to reconfigure" call; react once it's done.
@@ -436,23 +451,39 @@ final class DisplayController: ObservableObject {
         }
     }
 
-    /// Ask the monitor to restore its factory brightness and contrast, then
-    /// re-read them so the sliders match.
-    func restoreFactoryPicture(for id: CGDirectDisplayID) {
+    /// Ask the monitor to restore its factory brightness and contrast (or,
+    /// with `everything`, all its factory settings), then read the values
+    /// back. Both commands are optional in the DDC/CI standard and some
+    /// monitors ignore them, so say so if nothing changed.
+    func restoreFactoryPicture(for id: CGDirectDisplayID, everything: Bool = false) {
         guard let identity = identities[id] else { return }
         problems[id] = nil
         // Our software dimming sits on top of the hardware: clear it too.
         dimmer.setLevel(1, for: id)
+        let before = ddcValues[id] ?? [:]
+        let command = everything ? VCP.restoreFactoryDefaults : VCP.restoreFactoryLuminanceContrast
         let ddc = self.ddc
         ddcQueue.async {
-            let ok = ddc.write(VCP.restoreFactoryLuminanceContrast, value: 1, for: identity)
-            // Give the monitor a moment to apply it before reading back.
-            Thread.sleep(forTimeInterval: 1)
+            let sent = ddc.write(command, value: 1, for: identity)
+            // Give the monitor time to apply it before reading back.
+            Thread.sleep(forTimeInterval: 1.5)
+            var after: [UInt8: VCPValue] = [:]
+            for vcp in [VCP.brightness, VCP.contrast, VCP.volume] {
+                if let value = ddc.read(vcp, for: identity) { after[vcp] = value }
+            }
+            let result = after
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                if !ok { self.problems[id] = "Couldn't restore factory settings" }
-                Log.ddc.info("Restore factory brightness/contrast on \(identity.name, privacy: .public): \(ok ? "sent" : "failed", privacy: .public)")
-                self.ddcValues[id] = nil // re-read on the next refresh
+                let changed = result.contains { vcp, value in before[vcp]?.current != value.current }
+                Log.ddc.info("Factory restore (0x\(String(format: "%02X", command), privacy: .public)) on \(identity.name, privacy: .public): sent \(sent), changed \(changed)")
+                if !sent {
+                    self.problems[id] = "Couldn't send the factory reset"
+                } else if !changed && !before.isEmpty {
+                    self.problems[id] = everything
+                        ? "The monitor ignored the factory reset"
+                        : "Monitor ignored it. Try Restore All Factory Settings"
+                }
+                if !result.isEmpty { self.ddcValues[id] = result }
                 self.refresh()
             }
         }
@@ -576,6 +607,8 @@ final class DisplayController: ObservableObject {
     /// quietly every couple of seconds so the keys work as soon as it's granted.
     private func syncBrightnessKeys() {
         if brightnessKeysEnabled {
+            // Event tap: volume keys, and brightness keys from keyboards that
+            // send them as events. Needs Accessibility.
             if !keys.isRunning {
                 if !MediaKeys.hasPermission && !didPromptForAccessibility {
                     didPromptForAccessibility = true
@@ -583,16 +616,32 @@ final class DisplayController: ObservableObject {
                 }
                 keys.start()
             }
+            // Keyboard reader: Apple keyboards' brightness keys. Needs Input Monitoring.
+            if !keyboard.isRunning {
+                if !KeyboardReader.hasPermission && !didPromptForInputMonitoring {
+                    didPromptForInputMonitoring = true
+                    KeyboardReader.requestPermission()
+                }
+                keyboard.start()
+            }
         } else {
             keys.stop()
+            keyboard.stop()
+            stopRepeat()
         }
-        let waiting = brightnessKeysEnabled && !keys.isRunning
-        if brightnessKeysNeedPermission != waiting { brightnessKeysNeedPermission = waiting }
-        if !keys.isRunning {
+
+        let needsAccessibility = brightnessKeysEnabled && !keys.isRunning
+        let needsInputMonitoring = brightnessKeysEnabled && !keyboard.isRunning
+        if brightnessKeysNeedPermission != needsAccessibility { brightnessKeysNeedPermission = needsAccessibility }
+        if inputMonitoringNeeded != needsInputMonitoring { inputMonitoringNeeded = needsInputMonitoring }
+
+        if !keys.isRunning && !keyboard.isRunning {
             keysStatus = nil
         } else if keysStatus == nil {
-            keysStatus = "Listening (\(keys.level ?? "?") level) · press a brightness key"
+            keysStatus = "Listening · press a brightness key"
         }
+
+        let waiting = needsAccessibility || needsInputMonitoring
         if waiting, permissionTimer == nil {
             permissionTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.syncBrightnessKeys() }
@@ -601,6 +650,49 @@ final class DisplayController: ObservableObject {
             permissionTimer?.invalidate()
             permissionTimer = nil
         }
+    }
+
+    /// A brightness key from the keyboard reader: step on press, keep
+    /// stepping while held (like macOS), stop on release.
+    private func keyboardKey(_ key: MediaKey, isDown: Bool) {
+        guard isDown else {
+            if heldKey == key { stopRepeat() }
+            return
+        }
+        let id = Self.displayUnderPointer() ?? CGMainDisplayID()
+        guard canHandle(key, on: id) else { return }
+        handle(key, fine: NSEvent.modifierFlags.contains([.shift, .option]), on: id)
+        stopRepeat()
+        heldKey = key
+        repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.startRepeating(key) }
+        }
+    }
+
+    private func startRepeating(_ key: MediaKey) {
+        guard heldKey == key else { return }
+        repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.heldKey == key else { return }
+                let id = Self.displayUnderPointer() ?? CGMainDisplayID()
+                self.lastStep[key] = nil // repeats are deliberate, never duplicates
+                self.handle(key, fine: NSEvent.modifierFlags.contains([.shift, .option]), on: id)
+            }
+        }
+    }
+
+    private func stopRepeat() {
+        repeatTimer?.invalidate()
+        repeatTimer = nil
+        heldKey = nil
+    }
+
+    private static func displayUnderPointer() -> CGDirectDisplayID? {
+        guard let location = CGEvent(source: nil)?.location else { return nil }
+        var displayID: CGDirectDisplayID = 0
+        var count: UInt32 = 0
+        guard CGGetDisplaysWithPoint(location, 1, &displayID, &count) == .success, count > 0 else { return nil }
+        return displayID
     }
 
     private func canHandle(_ key: MediaKey, on id: CGDirectDisplayID) -> Bool {
@@ -636,6 +728,11 @@ final class DisplayController: ObservableObject {
     }
 
     private func handle(_ key: MediaKey, fine: Bool, on id: CGDirectDisplayID) {
+        if key.isBrightness {
+            let now = Date()
+            if let last = lastStep[key], now.timeIntervalSince(last) < 0.05 { return }
+            lastStep[key] = now
+        }
         switch key {
         case .brightnessUp, .brightnessDown:
             adjustBrightness(up: key == .brightnessUp, fine: fine, on: id)
@@ -824,6 +921,16 @@ final class DisplayController: ObservableObject {
     /// Open Privacy & Security → Device Control and Data Access (called
     /// Accessibility before macOS 27). Tries the current Settings URL first,
     /// then the older one.
+    func openInputMonitoringSettings() {
+        let candidates = [
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ListenEvent",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
+        ]
+        for candidate in candidates {
+            if let url = URL(string: candidate), NSWorkspace.shared.open(url) { return }
+        }
+    }
+
     func openAccessibilitySettings() {
         let candidates = [
             "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility",

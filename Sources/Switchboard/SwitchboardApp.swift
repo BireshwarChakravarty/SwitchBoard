@@ -217,6 +217,9 @@ private struct ScreenOptions: View {
                 Button("Restore Factory Brightness & Contrast") {
                     controller.restoreFactoryPicture(for: display.id)
                 }
+                Button("Restore All Factory Settings") {
+                    controller.restoreFactoryPicture(for: display.id, everything: true)
+                }
             }
         }
     }
@@ -508,8 +511,17 @@ private struct SettingsCard: View {
                         )
                     )
                     if controller.brightnessKeysNeedPermission {
-                        PermissionNotice(controller: controller)
-                    } else if let status = controller.keysStatus {
+                        PermissionNotice(text: "Needs Device Control access") {
+                            controller.openAccessibilitySettings()
+                        }
+                    }
+                    if controller.inputMonitoringNeeded {
+                        PermissionNotice(text: "Needs Input Monitoring access") {
+                            controller.openInputMonitoringSettings()
+                        }
+                    }
+                    if !controller.brightnessKeysNeedPermission && !controller.inputMonitoringNeeded,
+                       let status = controller.keysStatus {
                         Text(status)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -549,17 +561,19 @@ private struct SettingsCard: View {
     }
 }
 
+/// "Needs … access" with a button to the right Privacy & Security page.
 private struct PermissionNotice: View {
-    @ObservedObject var controller: DisplayController
+    let text: String
+    let openSettings: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-            Text("Needs Device Control access")
+            Text(text)
                 .font(.caption)
             Spacer()
-            Button("Open Settings") { controller.openAccessibilitySettings() }
+            Button("Open Settings", action: openSettings)
                 .buttonStyle(.glass)
                 .controlSize(.small)
         }

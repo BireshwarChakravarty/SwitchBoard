@@ -11,6 +11,9 @@ enum VCP {
     /// Writing a non-zero value restores the monitor's factory brightness
     /// and contrast.
     static let restoreFactoryLuminanceContrast: UInt8 = 0x06
+    /// Writing a non-zero value restores all of the monitor's factory
+    /// settings (like Reset in its own menu).
+    static let restoreFactoryDefaults: UInt8 = 0x04
 }
 
 /// Values for the power-mode VCP feature.

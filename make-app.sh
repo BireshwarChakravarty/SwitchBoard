@@ -7,9 +7,13 @@
 #      disconnected, removes software dimming, wakes monitors in standby
 #   4. deletes their app bundles, settings and Accessibility permission
 #   5. installs and launches the new app (which turns on Start at Login)
-# Usage: ./make-app.sh
+# Usage: ./make-app.sh             build and install
+#        ./make-app.sh --package   build dist/Switchboard.zip only (for releases)
 set -euo pipefail
 cd "$(dirname "$0")"
+
+PACKAGE_ONLY=false
+[ "${1:-}" = "--package" ] && PACKAGE_ONLY=true
 
 APP="Switchboard.app"
 STAGE=".build/app/$APP"
@@ -33,6 +37,15 @@ cp Resources/Info.plist "$STAGE/Contents/Info.plist"
 cp Resources/AppIcon.icns "$STAGE/Contents/Resources/AppIcon.icns"
 codesign --force --sign - "$STAGE"
 
+if $PACKAGE_ONLY; then
+    echo "==> Packaging dist/Switchboard.zip"
+    mkdir -p dist
+    rm -f dist/Switchboard.zip
+    ditto -c -k --keepParent "$STAGE" dist/Switchboard.zip
+    echo "Done: dist/Switchboard.zip"
+    exit 0
+fi
+
 echo "==> Quitting running copies"
 for name in "${OLD_NAMES[@]}"; do pkill -x "$name" 2>/dev/null || true; done
 sleep 1
@@ -45,6 +58,7 @@ for bundle in "${OLD_BUNDLES[@]}"; do rm -rf "/Applications/$bundle"; done
 for domain in "${OLD_DOMAINS[@]}"; do
     defaults delete "$domain" >/dev/null 2>&1 || true
     tccutil reset Accessibility "$domain" >/dev/null 2>&1 || true
+    tccutil reset ListenEvent "$domain" >/dev/null 2>&1 || true
 done
 
 echo "==> Installing to /Applications"

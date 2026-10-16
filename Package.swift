@@ -17,6 +17,11 @@ let package = Package(
                 .linkedFramework("AppKit"),
                 .linkedFramework("SwiftUI")
             ]
+        ),
+        .testTarget(
+            name: "SwitchboardTests",
+            dependencies: ["Switchboard"],
+            path: "Tests/SwitchboardTests"
         )
     ]
 )
