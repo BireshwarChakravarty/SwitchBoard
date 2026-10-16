@@ -18,7 +18,7 @@ body:
     attributes:
       label: Switchboard version
       description: Shown at the bottom of the menu.
-      placeholder: "Version 2.0.1 (40)"
+      placeholder: "Version 2.0.2"
     validations:
       required: true
   - type: input

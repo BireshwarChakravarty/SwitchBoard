@@ -75,7 +75,7 @@ pkill -x Switchboard; rm -rf /Applications/Switchboard.app && curl -L -o ~/Downl
 ```
 
 Updates keep your settings and permissions. The menu's footer shows the
-installed version and build, for example *Version 2.0.1 (40)*.
+installed version.
 
 ## Getting started
 

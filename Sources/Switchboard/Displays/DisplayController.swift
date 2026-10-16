@@ -821,14 +821,12 @@ final class DisplayController: ObservableObject {
         return Preferences.switchVisible(for: key) == false
     }
 
-    /// "Version 2.0.1 (52)": the full version (with any pre-release label)
-    /// and the build number, both stamped by scripts/make-app.sh.
+    /// "Version 2.0.2", or "Version 2.1.0-beta.1" for a pre-release, as
+    /// stamped by scripts/make-app.sh ("Development build" under `swift run`).
     var versionLabel: String {
         let info = Bundle.main.infoDictionary ?? [:]
         guard let short = info["CFBundleShortVersionString"] as? String else { return "Development build" }
-        let version = info["SwitchboardVersion"] as? String ?? short
-        guard let build = info["CFBundleVersion"] as? String else { return "Version \(version)" }
-        return "Version \(version) (\(build))"
+        return "Version \(info["SwitchboardVersion"] as? String ?? short)"
     }
 
     // MARK: Reset to Defaults

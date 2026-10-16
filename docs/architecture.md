@@ -92,10 +92,10 @@ The DDC/CI approach on Apple Silicon follows the open-source
 ## Versioning and releases
 
 - `VERSION` holds the version, following [Semantic Versioning](https://semver.org/).
-- `scripts/make-app.sh` stamps it into the app's Info.plist. The build number
-  (`CFBundleVersion`) is the number of commits, so it always increases. A
-  pre-release label (`2.1.0-beta.1`) is kept in `SwitchboardVersion` and shown
-  in the menu.
+- `scripts/make-app.sh` stamps it into the app's Info.plist
+  (`CFBundleShortVersionString` and `CFBundleVersion`). Bundle versions must
+  be numeric, so a pre-release label (`2.1.0-beta.1`) is kept in
+  `SwitchboardVersion`, which the menu shows.
 - The app is ad-hoc signed with a designated requirement naming only its
   bundle identifier, so macOS privacy permissions carry over between builds.
 - The [Release workflow](../.github/workflows/release.yml) publishes `VERSION`

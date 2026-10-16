@@ -70,7 +70,7 @@ reads out, and the new state:
 ```json
 {
   "mac": "Mac mini",
-  "version": "Version 2.0.1 (40)",
+  "version": "Version 2.0.2",
   "allScreens": 60,
   "screens": [
     {

@@ -6,15 +6,22 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-10-17
+
+### Changed
+- The menu shows just the version, such as *Version 2.0.2*, without a build
+  number. Pre-releases still show their full label, such as
+  *Version 2.1.0-beta.1*. The app's bundle version now matches it too.
+
 ## [2.0.1] - 2026-10-17
 
 ### Changed
 - The menu shows the build number with the version, such as
-  *Version 2.0.1 (40)*, so any two builds can be told apart.
+  *Version 2.0.1 (34)*, so any two builds can be told apart.
 - Reorganised the source code by area, with one view per file. No change in
   behaviour.
 - Releases are now cut from a single `VERSION` file, with notes taken from
-  this changelog, and build numbers come from git automatically.
+  this changelog.
 
 ## [2.0.0] - 2026-10-16
 
@@ -111,7 +118,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.2...HEAD
+[2.0.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.3...v2.0.0
 [1.0.3]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.2...v1.0.3

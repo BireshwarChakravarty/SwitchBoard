@@ -90,5 +90,5 @@ entry. A version with a pre-release label, such as `2.1.0-beta.1`, is
 published as a pre-release and may come from any branch; stable releases come
 from `main`.
 
-Build numbers are counted from git commits automatically; never edit them, or
-the version in `Resources/Info.plist`, by hand.
+`VERSION` is the only place the version is set; the build stamps it into the
+app, so never edit the version in `Resources/Info.plist`.

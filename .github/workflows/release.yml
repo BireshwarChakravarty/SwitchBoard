@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0 # tags, and build numbers that count commits
+          fetch-depth: 0 # with tags, to refuse a version that's already released
 
       - name: Check the version
         id: version
