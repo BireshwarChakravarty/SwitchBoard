@@ -1,0 +1,65 @@
+name: Release
+
+# Publishes the version in VERSION as a GitHub release, with its notes taken
+# from CHANGELOG.md. Run it from the Actions tab once VERSION and the
+# changelog are updated on main. A version with a pre-release label
+# (2.1.0-beta.1) is published as a pre-release.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, test and publish
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # tags, and build numbers that count commits
+
+      - name: Check the version
+        id: version
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::VERSION ($VERSION) isn't a semantic version"; exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::v$VERSION is already released. Update VERSION and CHANGELOG.md first."; exit 1
+          fi
+          if [[ "$VERSION" != *-* && "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "::error::Stable releases come from main; use a pre-release version on other branches."; exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Release notes
+        run: scripts/release-notes.sh "${{ steps.version.outputs.version }}" > "$RUNNER_TEMP/notes.md"
+
+      - name: Build
+        run: make build
+
+      - name: Test
+        run: make test
+
+      - name: Package
+        run: make package
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          PRERELEASE=()
+          [[ "$VERSION" == *-* ]] && PRERELEASE=(--prerelease)
+          gh release create "v$VERSION" dist/Switchboard.zip \
+            --target "$GITHUB_SHA" \
+            --title "Switchboard $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            "${PRERELEASE[@]}"

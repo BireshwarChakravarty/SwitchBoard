@@ -8,10 +8,13 @@
 #      disconnected, removes software dimming, wakes monitors in standby
 #   4. deletes their app bundles, settings and Accessibility permission
 #   5. installs and launches the new app (which turns on Start at Login)
-# Usage: ./make-app.sh             build and install
-#        ./make-app.sh --package   build dist/Switchboard.zip only (for releases)
+# The version comes from the VERSION file and the build number from the
+# number of commits, so neither is edited by hand.
+#
+# Usage: scripts/make-app.sh             build and install (or: make install)
+#        scripts/make-app.sh --package   build dist/Switchboard.zip only (or: make package)
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 PACKAGE_ONLY=false
 [ "${1:-}" = "--package" ] && PACKAGE_ONLY=true
@@ -35,6 +38,14 @@ rm -rf "$STAGE"
 mkdir -p "$STAGE/Contents/MacOS" "$STAGE/Contents/Resources"
 cp "$(swift build -c release --show-bin-path)/Switchboard" "$STAGE/Contents/MacOS/Switchboard"
 cp Resources/Info.plist "$STAGE/Contents/Info.plist"
+
+VERSION="$(tr -d '[:space:]' < VERSION)"
+BUILD="$(git rev-list --count HEAD 2>/dev/null || echo 0)"
+PLIST="$STAGE/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION%%-*}" "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST"
+/usr/libexec/PlistBuddy -c "Add :SwitchboardVersion string $VERSION" "$PLIST"
+echo "    version $VERSION, build $BUILD"
 cp Resources/AppIcon.icns "$STAGE/Contents/Resources/AppIcon.icns"
 # Ad-hoc signing normally ties macOS privacy permissions (Input Monitoring,
 # Accessibility) to this exact build, so every update would lose them. A
