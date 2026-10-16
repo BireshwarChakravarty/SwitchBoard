@@ -59,25 +59,32 @@ dependencies and no network access.
 
 ## Install
 
+**Download the app** (easiest): get `Switchboard.zip` from the
+[latest release](https://github.com/BireshwarChakravarty/SwitchBoard/releases/latest),
+unzip it and move **Switchboard.app** to Applications. It isn't notarized, so
+the first time, right-click it and choose **Open**, then **Open** again (or run
+`xattr -dr com.apple.quarantine /Applications/Switchboard.app`).
+
+**Or build it yourself** with the Swift toolchain (the free Command Line Tools
+are enough: `xcode-select --install`):
+
 ```bash
 git clone https://github.com/BireshwarChakravarty/SwitchBoard.git
 cd SwitchBoard
 ./make-app.sh
 ```
 
-`make-app.sh` builds the app, signs it for your Mac (ad-hoc), and does a
-**clean install** into `/Applications`. Before installing, it undoes anything
-an earlier copy did: it reconnects screens, removes dimming, wakes monitors,
-and deletes old settings and permissions. Then it launches Switchboard.
+`make-app.sh` builds the app, signs it for your Mac, and does a **clean
+install** into `/Applications`. Before installing, it undoes anything an
+earlier copy did: it reconnects screens, removes dimming, and deletes old
+settings and permissions. Then it launches Switchboard. To update, `git pull`
+and run it again.
 
-On first launch Switchboard turns on **Start at Login**. You can turn that
-off in its menu.
+On first launch Switchboard turns on **Start at Login**, and asks for the two
+permissions the keyboard keys need (see below).
 
-Because the app is built on your Mac and not notarized, macOS may block the
-first launch. Right-click **Switchboard** in Applications → **Open** →
-**Open**, or allow it in System Settings → Privacy & Security.
-
-To update, `git pull` and run `./make-app.sh` again.
+Every change is built and tested automatically on macOS 26 (GitHub Actions),
+and each release includes the built app.
 
 ## Using it
 
@@ -111,27 +118,26 @@ screen off.
 
 ### Keyboard keys
 
-Brightness keys (and volume keys, for monitor speakers) are on from the
-first launch. macOS only lets an app react
-to them with **Device Control and Data Access** permission (called
-**Accessibility** before macOS 27), so Switchboard asks for it on
-launch:
+Brightness keys (and volume keys, for monitor speakers) are on from the first
+launch. They need two permissions, which Switchboard asks for on launch:
 
-1. In the prompt, click **Open System Settings**.
-2. Turn on **Switchboard** under Privacy & Security → Device Control and Data
-   Access.
+| Permission (Privacy & Security) | Why |
+|---|---|
+| **Input Monitoring** | Reads Apple keyboards' brightness keys (F1/F2 on a Magic Keyboard). macOS handles these inside its keyboard driver, so on a Mac mini no app sees them otherwise. |
+| **Device Control and Data Access** (called Accessibility before macOS 27) | Catches volume keys, and brightness keys from keyboards that send them as events. |
 
-The keys start working within a couple of seconds, with no relaunch needed.
-Until then the Keyboard Keys row (under **Settings**) shows **Needs
-Device Control access**, with a button straight to that setting.
+Turn **Switchboard** on in both lists. The keys start working within a couple
+of seconds, with no relaunch. Until then **Settings → Keyboard Keys** shows
+which access is missing, with a button straight to that page.
 
 - The line under **Keyboard Keys** shows what's happening, for example
-  "Listening (HID level) · press a brightness key" or
-  "Brightness Up → XV272K V5 · 65%".
-  It also shows when a key arrives but there's nothing to adjust.
-- Brightness keys that arrive as **F14/F15** (as on some keyboards) work too.
+  "Listening · press a brightness key" or "Brightness Up → XV272K V5 · 65%".
+- F1/F2 follow your fn setting: hold **fn** for normal F1/F2 (or the reverse,
+  if "Use F1, F2, etc. keys as standard function keys" is on).
 - Each press moves brightness one of 16 steps, like a built-in screen; hold
-  **⇧⌥** for 64 finer steps. A brightness indicator appears at the top right.
+  **⇧⌥** for 64 finer steps. Holding a key keeps stepping. An indicator
+  appears at the top right. macOS may still show its own "not supported"
+  indicator for Apple keyboards, because reading the keyboard can't stop it.
 - Keys adjust the monitor under the pointer, together with any screen
   mirroring it. If that screen can't be adjusted, they adjust your other
   monitors.
@@ -141,9 +147,11 @@ Device Control access**, with a button straight to that setting.
 - Volume and mute keys act on a monitor only when sound plays through its
   speakers over HDMI or DisplayPort, which macOS can't adjust. Otherwise they
   work as usual.
+- Quit other display apps (BetterDisplay, MonitorControl, Lunar): they catch
+  the same keys.
 
-If you rebuild the app, macOS treats it as a new app. `make-app.sh` clears
-the old permission, so grant it again when asked.
+If you rebuild the app yourself, macOS treats it as a new app. `make-app.sh`
+clears the old permissions, so grant them again when asked.
 
 ## How it works
 
@@ -157,7 +165,7 @@ the old permission, so grant it again when asked.
 | Dimming | Display gamma tables (`CGSetDisplayTransferByTable`), below the hardware minimum for DDC/CI monitors |
 | Resolution | `CGDisplayCopyAllDisplayModes` scaled modes, applied with `CGConfigureDisplayWithDisplayMode` |
 | Monitor speakers | Core Audio detects HDMI/DisplayPort output without volume control; volume is set over DDC/CI |
-| Keyboard keys | A `CGEventTap` at the HID level (falling back to the session level) on the system-defined brightness and volume key events; indicator is a Liquid Glass `NSPanel` |
+| Keyboard keys | `IOHIDManager` reads keyboards' brightness usages (Input Monitoring); a `CGEventTap` at the HID level catches system-defined key events (volume, other keyboards); indicator is a Liquid Glass `NSPanel` |
 | Start at Login | `SMAppService` |
 
 The DDC approach is the one used by the open-source
@@ -206,6 +214,7 @@ Sources/Switchboard/
 ├── SoftwareDisconnect.swift  Software disconnect / reconnect
 ├── SoftwareDimmer.swift      Gamma-table dimming
 ├── MediaKeys.swift           Brightness and volume key event tap
+├── KeyboardReader.swift      Reads brightness keys straight from keyboards
 ├── LevelHUD.swift            On-screen brightness/volume indicator
 ├── BrightnessCurve.swift     Combined hardware + software brightness scale
 ├── DisplayModes.swift        Resolutions
