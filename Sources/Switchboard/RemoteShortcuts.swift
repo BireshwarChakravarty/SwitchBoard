@@ -186,6 +186,10 @@ enum ShortcutSigner {
                 return .success(())
             }
             lastError = text.isEmpty ? "shortcuts sign failed (\(process.terminationStatus))" : text
+            if text.localizedCaseInsensitiveContains("iCloud") {
+                // Signing needs an Apple Account; the other mode won't help.
+                return .failure(Failure(message: "Sign in to iCloud on this Mac (System Settings → your name), then try again."))
+            }
         }
         return .failure(Failure(message: lastError))
     }

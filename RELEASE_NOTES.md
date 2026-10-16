@@ -6,8 +6,10 @@ reinstall [1.0.3](https://github.com/BireshwarChakravarty/SwitchBoard/releases/t
 
 - Control your screens from your iPhone: power, brightness, contrast, volume
   and resolution, from a page you add to the Home Screen like an app.
-- Siri and Shortcuts: ready-made links for one-tap shortcuts such as
-  "ARZOPA Off" or "Brightness 50%".
+- Siri and Shortcuts: **Settings → iPhone Remote → Add Shortcuts…** builds
+  ready-made shortcuts ("ARZOPA On", "ARZOPA Off", "Toggle ARZOPA", "Screen
+  Brightness") and opens them in the Shortcuts app. iCloud syncs them to your
+  iPhone, so "Hey Siri, ARZOPA Off" just works.
 - Local network only. A phone pairs once with a code shown on the Mac.
 
 To try it, turn on **Settings → iPhone Remote** in Switchboard, then open the

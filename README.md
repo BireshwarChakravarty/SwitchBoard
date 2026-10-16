@@ -201,7 +201,16 @@ The page shows your screens with their power switches, and the selected
 screen's brightness, contrast, volume and resolution. Changes on the Mac show
 up within a few seconds.
 
-**Shortcuts and Siri.** Open **Shortcuts & Siri** on the page for ready-made
+**Ready-made shortcuts.** In **Settings → iPhone Remote**, click **Add
+Shortcuts…**. Switchboard builds "ARZOPA On", "ARZOPA Off" and "Toggle ARZOPA"
+for each screen with a power switch, plus "Screen Brightness" (it asks for a
+number), signs them with Apple's `shortcuts` tool, and opens them in the
+Shortcuts app. Click **Add Shortcut** for each one. With iCloud on, they
+appear on your iPhone too: say "Hey Siri, ARZOPA Off", or add them to the Home
+Screen, Control Center or the Action button. Signing needs this Mac to be
+signed in to iCloud. Copies are saved in `~/Downloads/Switchboard Shortcuts`.
+
+**Make your own.** Open **Shortcuts & Siri** on the page for ready-made
 links, each with a Copy button. In the Shortcuts app, add the **Get Contents
 of URL** action, paste a link, and set **Method** to **POST**. Name the
 shortcut, for example "ARZOPA Off", and Siri runs it when you say its name.

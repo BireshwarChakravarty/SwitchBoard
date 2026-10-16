@@ -6,6 +6,19 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0-beta.2] - 2026-10-16
+
+### Added
+- **Add Shortcuts…** (Settings → iPhone Remote) builds ready-made Siri
+  shortcuts: "<Screen> On", "<Screen> Off" and "Toggle <Screen>" for each
+  screen with a power switch, and "Screen Brightness", which asks for a
+  number. They're signed on the Mac and opened in the Shortcuts app; iCloud
+  syncs them to the iPhone. Siri reads out the result.
+
+### Changed
+- The remote's API rounds decimal values ("40.5" → 41) and includes a
+  readable `message` in error replies too.
+
 ## [1.1.0-beta.1] - 2026-10-16
 
 ### Added
@@ -89,7 +102,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.1.0-beta.1...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.1.0-beta.2...HEAD
+[1.1.0-beta.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.1.0-beta.1...v1.1.0-beta.2
 [1.1.0-beta.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.3...v1.1.0-beta.1
 [1.0.3]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.1...v1.0.2
