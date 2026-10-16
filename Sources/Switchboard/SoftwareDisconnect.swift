@@ -48,6 +48,21 @@ enum SoftwareDisconnect {
         /// Hold a fade reservation while the configuration completes, which
         /// can stop macOS running its own fade.
         case holdFade
+        /// Apply the change for this app only (macOS undoes it when the app
+        /// quits) rather than for the login session, which makes macOS save
+        /// and reload the whole display setup.
+        case appOnly
+        /// Apply the change permanently (as System Settings would).
+        case permanent
+
+        /// How long the change lasts.
+        var option: CGConfigureOption {
+            switch self {
+            case .appOnly: .forAppOnly
+            case .permanent: .permanently
+            default: .forSession
+            }
+        }
 
         var title: String {
             switch self {
@@ -55,6 +70,8 @@ enum SoftwareDisconnect {
             case .keepModes: "Keep Other Screens' Modes"
             case .unmirrorFirst: "Unmirror First"
             case .holdFade: "Hold Fade"
+            case .appOnly: "App Only"
+            case .permanent: "Permanent"
             }
         }
     }
@@ -84,7 +101,7 @@ enum SoftwareDisconnect {
 
         let others = Displays.active().filter { $0 != displayID }
         switch style {
-        case .standard, .holdFade:
+        case .standard, .holdFade, .appOnly, .permanent:
             break
         case .keepModes:
             for other in others {
@@ -132,7 +149,7 @@ enum SoftwareDisconnect {
         }
 
         let start = Date()
-        let completed = CGCompleteDisplayConfiguration(config, .forSession)
+        let completed = CGCompleteDisplayConfiguration(config, style.option)
         let milliseconds = Int(Date().timeIntervalSince(start) * 1000)
         if holdingFade { CGReleaseDisplayFadeReservation(token) }
 
