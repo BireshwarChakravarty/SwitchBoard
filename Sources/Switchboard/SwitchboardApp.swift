@@ -414,6 +414,14 @@ struct DisplayRow: View {
                 get: { display.autoOff },
                 set: { controller.setAutoOff($0, for: display.id) }
             ))
+            Picker("Disconnect Style", selection: Binding(
+                get: { controller.disconnectStyle },
+                set: { controller.setDisconnectStyle($0) }
+            )) {
+                ForEach(SoftwareDisconnect.Style.allCases, id: \.self) { style in
+                    Text(style.title).tag(style)
+                }
+            }
             if display.brightness != nil || display.contrast != nil {
                 Divider()
                 Button("Restore Factory Brightness & Contrast") {

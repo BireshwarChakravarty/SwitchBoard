@@ -31,30 +31,48 @@ enum SoftwareDisconnect {
         return nil
     }()
 
-    /// How a display configuration fades the screens while it's applied.
-    private enum Fade: CustomStringConvertible {
-        /// A fade too short to see (10 ms), so other screens appear to stay on.
-        case minimal
-        /// macOS's default: every screen fades to black and back (~0.8 s).
+    /// Ways to disconnect a screen while trying to keep the others on. macOS
+    /// rejects a configuration without its fade (kCGErrorNotImplemented), so
+    /// these work around the blank instead. Chosen in a screen's right-click
+    /// menu (Disconnect Style) while we find the one that works best.
+    enum Style: String, CaseIterable, Hashable {
+        /// A plain configuration: macOS fades/reconfigures every screen.
         case standard
+        /// Also re-apply every other screen's current mode in the same
+        /// configuration, so macOS has no reason to change them.
+        case keepModes
+        /// Take the screen out of its mirror set in the same configuration
+        /// (and put it back on reconnect), so the mirror isn't torn down
+        /// separately.
+        case unmirrorFirst
+        /// Hold a fade reservation while the configuration completes, which
+        /// can stop macOS running its own fade.
+        case holdFade
 
-        var description: String { self == .minimal ? "minimal" : "standard" }
+        var title: String {
+            switch self {
+            case .standard: "Standard"
+            case .keepModes: "Keep Other Screens' Modes"
+            case .unmirrorFirst: "Unmirror First"
+            case .holdFade: "Hold Fade"
+            }
+        }
     }
 
-    /// Enable (reconnect) or disable (disconnect) a display. Returns true on success.
-    ///
-    /// Tries a minimal fade first, so other screens don't visibly go black. If
-    /// macOS rejects that, it retries with the default fade, which always works.
-    /// (Turning the fade off entirely fails with kCGErrorNotImplemented on
-    /// recent macOS.)
+    /// The screen each disconnected screen mirrored, to restore on reconnect.
+    private static var mirrorSources: [CGDirectDisplayID: CGDirectDisplayID] = [:]
+
+    /// Enable (reconnect) or disable (disconnect) a display. Returns true on
+    /// success. If the chosen style is rejected, falls back to `.standard`.
     @discardableResult
-    static func setEnabled(_ enabled: Bool, displayID: CGDirectDisplayID) -> Bool {
-        if apply(enabled, displayID: displayID, fade: .minimal) { return true }
-        Log.display.notice("Display \(displayID): retrying with the standard fade")
-        return apply(enabled, displayID: displayID, fade: .standard)
+    static func setEnabled(_ enabled: Bool, displayID: CGDirectDisplayID, style: Style = .standard) -> Bool {
+        if apply(enabled, displayID: displayID, style: style) { return true }
+        guard style != .standard else { return false }
+        Log.display.notice("Display \(displayID): \(style.rawValue, privacy: .public) rejected, retrying standard")
+        return apply(enabled, displayID: displayID, style: .standard)
     }
 
-    private static func apply(_ enabled: Bool, displayID: CGDirectDisplayID, fade: Fade) -> Bool {
+    private static func apply(_ enabled: Bool, displayID: CGDirectDisplayID, style: Style) -> Bool {
         guard let configure = configureEnabled else { return false }
 
         var config: CGDisplayConfigRef?
@@ -64,25 +82,65 @@ enum SoftwareDisconnect {
             return false
         }
 
-        if fade == .minimal {
-            let faded = CGConfigureDisplayFadeEffect(config, 0.01, 0.01, 0, 0, 0)
-            if faded != .success {
-                Log.display.notice("CGConfigureDisplayFadeEffect failed: \(faded.rawValue)")
+        let others = Displays.active().filter { $0 != displayID }
+        switch style {
+        case .standard, .holdFade:
+            break
+        case .keepModes:
+            for other in others {
+                guard let mode = CGDisplayCopyDisplayMode(other) else { continue }
+                let kept = CGConfigureDisplayWithDisplayMode(config, other, mode, nil)
+                if kept != .success {
+                    Log.display.notice("Keeping mode of display \(other) failed: \(kept.rawValue)")
+                }
+            }
+        case .unmirrorFirst:
+            if enabled {
+                if let source = mirrorSources.removeValue(forKey: displayID) {
+                    let mirrored = CGConfigureDisplayMirrorOfDisplay(config, displayID, source)
+                    if mirrored != .success {
+                        Log.display.notice("Re-mirroring display \(displayID) failed: \(mirrored.rawValue)")
+                    }
+                }
+            } else {
+                let source = CGDisplayMirrorsDisplay(displayID)
+                if source != kCGNullDirectDisplay {
+                    mirrorSources[displayID] = source
+                    let unmirrored = CGConfigureDisplayMirrorOfDisplay(config, displayID, kCGNullDirectDisplay)
+                    if unmirrored != .success {
+                        Log.display.notice("Unmirroring display \(displayID) failed: \(unmirrored.rawValue)")
+                    }
+                }
             }
         }
 
         let result = configure(config, displayID, enabled)
         guard result == 0 else {
-            Log.display.error("CGSConfigureDisplayEnabled(\(displayID), \(enabled), fade: \(fade.description, privacy: .public)) failed: \(result)")
+            Log.display.error("CGSConfigureDisplayEnabled(\(displayID), \(enabled), \(style.rawValue, privacy: .public)) failed: \(result)")
             CGCancelDisplayConfiguration(config)
             return false
         }
+
+        var token: CGDisplayFadeReservationToken = 0
+        var holdingFade = false
+        if style == .holdFade {
+            let reserved = CGAcquireDisplayFadeReservation(2, &token)
+            holdingFade = reserved == .success
+            if !holdingFade {
+                Log.display.notice("CGAcquireDisplayFadeReservation failed: \(reserved.rawValue)")
+            }
+        }
+
+        let start = Date()
         let completed = CGCompleteDisplayConfiguration(config, .forSession)
+        let milliseconds = Int(Date().timeIntervalSince(start) * 1000)
+        if holdingFade { CGReleaseDisplayFadeReservation(token) }
+
         if completed != .success {
-            Log.display.error("CGCompleteDisplayConfiguration(fade: \(fade.description, privacy: .public)) failed: \(completed.rawValue)")
+            Log.display.error("CGCompleteDisplayConfiguration(\(style.rawValue, privacy: .public)) failed: \(completed.rawValue)")
             return false
         }
-        Log.display.info("Display \(displayID) \(enabled ? "connected" : "disconnected", privacy: .public) (fade: \(fade.description, privacy: .public))")
+        Log.display.info("Display \(displayID) \(enabled ? "connected" : "disconnected", privacy: .public) (\(style.rawValue, privacy: .public), \(milliseconds) ms)")
         return true
     }
 }

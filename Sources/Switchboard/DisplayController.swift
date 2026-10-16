@@ -316,7 +316,7 @@ final class DisplayController: ObservableObject {
             dimmer.setBlackedOut(false, for: id)
             intents[id] = true
         } else if Preferences.disconnectedDisplays.contains(id) {
-            if SoftwareDisconnect.setEnabled(true, displayID: id) {
+            if SoftwareDisconnect.setEnabled(true, displayID: id, style: Preferences.disconnectStyle) {
                 Preferences.disconnectedDisplays.remove(id)
                 intents[id] = true
             } else {
@@ -335,7 +335,7 @@ final class DisplayController: ObservableObject {
             problems[id] = "Can't disconnect the only active screen"
             return
         }
-        if SoftwareDisconnect.setEnabled(false, displayID: id) {
+        if SoftwareDisconnect.setEnabled(false, displayID: id, style: Preferences.disconnectStyle) {
             Preferences.disconnectedDisplays.insert(id)
             intents[id] = false
         } else {
@@ -351,7 +351,7 @@ final class DisplayController: ObservableObject {
     /// Reconnect every display this app disconnected in software.
     func reconnectAll() {
         for id in Preferences.disconnectedDisplays {
-            SoftwareDisconnect.setEnabled(true, displayID: id)
+            SoftwareDisconnect.setEnabled(true, displayID: id, style: Preferences.disconnectStyle)
             intents[id] = nil
         }
         Preferences.disconnectedDisplays = []
@@ -807,6 +807,15 @@ final class DisplayController: ObservableObject {
         guard let key = identities[id]?.key else { return }
         Preferences.setOffMethod(method, for: key)
         refresh()
+    }
+
+    /// Which disconnect style to use (a test setting while we find the one
+    /// that keeps other screens on).
+    var disconnectStyle: SoftwareDisconnect.Style { Preferences.disconnectStyle }
+
+    func setDisconnectStyle(_ style: SoftwareDisconnect.Style) {
+        Preferences.disconnectStyle = style
+        objectWillChange.send()
     }
 
     func setAutoOff(_ enabled: Bool, for id: CGDirectDisplayID) {

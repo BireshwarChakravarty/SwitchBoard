@@ -111,6 +111,11 @@ Click the monitor-and-switch icon in the menu bar.
   disconnecting and remembers that. It only blacks a screen out if you choose
   that.
 - **Switch Off While Locked or Asleep**.
+- **Disconnect Style** (applies to every screen): Standard, Keep Other
+  Screens' Modes, Unmirror First or Hold Fade. These are different ways to
+  disconnect a screen while trying to keep the other screens from blanking,
+  since macOS no longer allows turning the transition fade off. The log
+  records which style was used and how long each change took.
 - **Restore Factory Brightness & Contrast** (DDC/CI monitors): asks the
   monitor to restore its own factory brightness and contrast.
 
