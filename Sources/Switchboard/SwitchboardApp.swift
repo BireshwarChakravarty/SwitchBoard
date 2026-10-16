@@ -670,6 +670,22 @@ private struct RemoteSection: View {
                             .buttonStyle(.glass)
                             .controlSize(.mini)
                     }
+                    HStack(spacing: 6) {
+                        Text("Siri & Shortcuts")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: 4)
+                        Button(remote.isMakingShortcuts ? "Making…" : "Add Shortcuts…") { remote.addShortcuts() }
+                            .buttonStyle(.glass)
+                            .controlSize(.mini)
+                            .disabled(remote.isMakingShortcuts || !remote.isListening)
+                    }
+                    if let status = remote.shortcutsStatus {
+                        Text(status)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     if remote.pairedCount > 0 {
                         HStack(spacing: 6) {
                             Text(remote.pairedCount == 1 ? "1 paired device" : "\(remote.pairedCount) paired devices")

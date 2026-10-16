@@ -84,9 +84,10 @@ struct HTTPResponse: Sendable {
         return HTTPResponse(status: status, contentType: "application/json; charset=utf-8", body: body)
     }
 
-    /// `{"error": "…"}` with the given status.
+    /// `{"error": "…", "message": "…"}` with the given status. `message` is
+    /// what Shortcuts reads out, for errors and successes alike.
     static func error(_ message: String, status: Int) -> HTTPResponse {
-        json(["error": message], status: status)
+        json(["error": message, "message": message], status: status)
     }
 
     var serialized: Data {

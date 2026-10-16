@@ -18,6 +18,9 @@ final class RemoteControl: ObservableObject {
     @Published private(set) var problem: String?
     @Published private(set) var code = ""
     @Published private(set) var pairedCount = 0
+    /// Progress or result of Add Shortcuts to Siri.
+    @Published private(set) var shortcutsStatus: String?
+    @Published private(set) var isMakingShortcuts = false
 
     private weak var controller: DisplayController?
     private var server: RemoteServer?
@@ -76,6 +79,100 @@ final class RemoteControl: ObservableObject {
     /// don't resolve on the phone's network.
     var fallbackAddress: String? {
         Self.localIPv4Address().map { "http://\($0):\(Self.port)" }
+    }
+
+    // MARK: Shortcuts
+
+    /// Build, sign and open ready-made shortcuts for this Mac's screens.
+    /// They get their own key (counted as a paired device).
+    func addShortcuts() {
+        guard let controller, !isMakingShortcuts else { return }
+        let switchable = controller.displays
+            .filter { $0.canToggle && !controller.isSwitchHidden($0.id) }
+            .map { (name: $0.name, slug: RemoteScreenMatcher.slug($0.name)) }
+        let brightness = controller.displays.contains { !$0.isBuiltIn && $0.combinedBrightness != nil }
+
+        let key = pairing.issueKey()
+        let shortcuts = RemoteShortcuts.make(base: address, key: key, switchable: switchable, brightness: brightness)
+        let files = shortcuts.compactMap { shortcut -> (name: String, data: Data)? in
+            guard let data = try? RemoteShortcuts.data(for: shortcut) else { return nil }
+            return (RemoteShortcuts.fileName(for: shortcut.name), data)
+        }
+        guard !files.isEmpty else {
+            pairing.revoke(key: key)
+            shortcutsStatus = "No screens to make shortcuts for"
+            return
+        }
+        savePairing()
+        isMakingShortcuts = true
+        shortcutsStatus = "Making \(files.count) shortcuts…"
+
+        Task.detached {
+            let result = Self.writeAndSign(files)
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.isMakingShortcuts = false
+                switch result {
+                case .success(let urls):
+                    Log.app.info("Remote: made \(urls.count) shortcuts")
+                    self.open(urls)
+                    self.shortcutsStatus = "Opened \(urls.count) shortcuts in Shortcuts. Click Add Shortcut for each; iCloud brings them to your iPhone."
+                case .failure(let failure):
+                    Log.app.error("Remote: shortcuts failed: \(failure.message, privacy: .public)")
+                    self.pairing.revoke(key: key)
+                    self.savePairing()
+                    self.shortcutsStatus = "Couldn't make shortcuts: \(failure.message)"
+                }
+            }
+        }
+    }
+
+    /// Write each shortcut, sign it into ~/Downloads/Switchboard Shortcuts
+    /// (replacing older ones, which hold an older key), and return the
+    /// signed files.
+    nonisolated private static func writeAndSign(_ files: [(name: String, data: Data)]) -> Result<[URL], ShortcutSigner.Failure> {
+        let manager = FileManager.default
+        let downloads = manager.urls(for: .downloadsDirectory, in: .userDomainMask).first
+            ?? manager.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
+        let folder = downloads.appendingPathComponent("Switchboard Shortcuts", isDirectory: true)
+        let scratch = manager.temporaryDirectory.appendingPathComponent("switchboard-\(UUID().uuidString)", isDirectory: true)
+        defer { try? manager.removeItem(at: scratch) }
+        do {
+            try manager.createDirectory(at: folder, withIntermediateDirectories: true)
+            try manager.createDirectory(at: scratch, withIntermediateDirectories: true)
+            for old in (try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+            where old.pathExtension == "shortcut" {
+                try? manager.removeItem(at: old)
+            }
+        } catch {
+            return .failure(ShortcutSigner.Failure(message: error.localizedDescription))
+        }
+
+        var signed: [URL] = []
+        for file in files {
+            let unsigned = scratch.appendingPathComponent(file.name)
+            let output = folder.appendingPathComponent(file.name)
+            do {
+                try file.data.write(to: unsigned)
+            } catch {
+                return .failure(ShortcutSigner.Failure(message: error.localizedDescription))
+            }
+            if case .failure(let failure) = ShortcutSigner.sign(unsigned, to: output) {
+                return .failure(failure)
+            }
+            signed.append(output)
+        }
+        return .success(signed)
+    }
+
+    /// Open the signed files in the Shortcuts app, which offers to add each.
+    private func open(_ urls: [URL]) {
+        let configuration = NSWorkspace.OpenConfiguration()
+        if let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.shortcuts") {
+            NSWorkspace.shared.open(urls, withApplicationAt: app, configuration: configuration)
+        } else {
+            urls.forEach { NSWorkspace.shared.open($0) }
+        }
     }
 
     // MARK: Server

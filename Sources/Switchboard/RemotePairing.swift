@@ -37,10 +37,20 @@ struct RemotePairing {
             }
             return .wrongCode
         }
-        let key = Self.newKey()
-        keyHashes.insert(Self.hash(key))
+        let key = issueKey()
         renewCode()
         return .paired(key: key)
+    }
+
+    /// A new key, without a code (for shortcuts made on the Mac itself).
+    mutating func issueKey() -> String {
+        let key = Self.newKey()
+        keyHashes.insert(Self.hash(key))
+        return key
+    }
+
+    mutating func revoke(key: String) {
+        keyHashes.remove(Self.hash(key))
     }
 
     func accepts(key: String?) -> Bool {

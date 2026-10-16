@@ -68,7 +68,12 @@ enum RemoteRoute: Equatable {
             return post(.power(screen: p[2], on: on))
         case let p where p.count == 5 && p[0] == "api" && p[1] == "screens":
             guard let control = RemoteControlKind(rawValue: p[3].lowercased()) else { return .failure(.notFound) }
-            guard let value = Int(p[4]) else { return .failure(.badValue("\(p[4]) isn't a number")) }
+            // Siri and Shortcuts may send "40.5" or "40%": round to a whole number.
+            let text = p[4].replacingOccurrences(of: "%", with: "")
+            guard let number = Double(text), number.isFinite else {
+                return .failure(.badValue("\(p[4]) isn't a number"))
+            }
+            let value = Int(number.rounded())
             if control == .resolution {
                 guard value >= 0 else { return .failure(.badValue("Resolution must be 0 or more")) }
             } else {
