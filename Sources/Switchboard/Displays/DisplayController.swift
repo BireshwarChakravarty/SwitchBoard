@@ -821,10 +821,14 @@ final class DisplayController: ObservableObject {
         return Preferences.switchVisible(for: key) == false
     }
 
-    /// "Switchboard 1.0" from the bundle (just "Switchboard" under `swift run`).
+    /// "Version 2.0.1 (52)": the full version (with any pre-release label)
+    /// and the build number, both stamped by scripts/make-app.sh.
     var versionLabel: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        return version.map { "Version \($0)" } ?? "Development build"
+        let info = Bundle.main.infoDictionary ?? [:]
+        guard let short = info["CFBundleShortVersionString"] as? String else { return "Development build" }
+        let version = info["SwitchboardVersion"] as? String ?? short
+        guard let build = info["CFBundleVersion"] as? String else { return "Version \(version)" }
+        return "Version \(version) (\(build))"
     }
 
     // MARK: Reset to Defaults
