@@ -6,6 +6,20 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-16
+
+### Added
+- **iPhone Remote** (Settings → iPhone Remote, off by default). Control your
+  screens from an iPhone on the same network: a web page you add to the Home
+  Screen, with power switches, brightness, contrast, volume, resolution and
+  All Screens brightness. Phones pair once with a six-digit code.
+- **Siri shortcuts:** Add Shortcuts… builds, signs and opens ready-made
+  shortcuts ("ARZOPA On", "ARZOPA Off", "Toggle ARZOPA", "Screen Brightness");
+  iCloud syncs them to the iPhone. The page also offers links for your own
+  shortcuts.
+
+Everything from 1.1.0-beta.1 and 1.1.0-beta.2, below.
+
 ## [1.1.0-beta.2] - 2026-10-16
 
 ### Added
@@ -102,7 +116,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.1.0-beta.2...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.3...v1.1.0
 [1.1.0-beta.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.1.0-beta.1...v1.1.0-beta.2
 [1.1.0-beta.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.3...v1.1.0-beta.1
 [1.0.3]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.2...v1.0.3

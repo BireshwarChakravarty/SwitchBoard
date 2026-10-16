@@ -1,21 +1,20 @@
-**Beta.** This pre-release adds the iPhone Remote. Everything else works as in
-1.0.3, and the remote stays off unless you turn it on. If anything misbehaves,
-reinstall [1.0.3](https://github.com/BireshwarChakravarty/SwitchBoard/releases/tag/v1.0.3).
+Switchboard is a menu-bar control panel for external displays on Apple Silicon
+Macs running macOS 26 or later.
 
-### New: iPhone Remote
+### New in 1.1: iPhone Remote and Siri
 
-- Control your screens from your iPhone: power, brightness, contrast, volume
-  and resolution, from a page you add to the Home Screen like an app.
-- Siri and Shortcuts: **Settings → iPhone Remote → Add Shortcuts…** builds
-  ready-made shortcuts ("ARZOPA On", "ARZOPA Off", "Toggle ARZOPA", "Screen
-  Brightness") and opens them in the Shortcuts app. iCloud syncs them to your
-  iPhone, so "Hey Siri, ARZOPA Off" just works.
-- Local network only. A phone pairs once with a code shown on the Mac.
+- **Control your screens from your iPhone:** power, brightness, contrast,
+  volume and resolution, from a page you add to the Home Screen like an app.
+- **Siri shortcuts:** Settings → iPhone Remote → **Add Shortcuts…** builds
+  "ARZOPA On", "ARZOPA Off", "Toggle ARZOPA" and "Screen Brightness" (for your
+  own screens' names) and opens them in the Shortcuts app. iCloud syncs them to
+  your iPhone, so "Hey Siri, ARZOPA Off" just works. They also fit in Control
+  Center and on the Action button.
+- **Private by design:** off unless you turn it on, local network only, and a
+  phone must pair with a code shown on the Mac.
 
-To try it, turn on **Settings → iPhone Remote** in Switchboard, then open the
-address it shows in Safari on your iPhone and enter the pairing code. See
-[iPhone Remote](https://github.com/BireshwarChakravarty/SwitchBoard#iphone-remote)
-in the README.
+See [iPhone Remote](https://github.com/BireshwarChakravarty/SwitchBoard#iphone-remote)
+in the README for setup.
 
 ### Install
 
@@ -27,5 +26,19 @@ in the README.
    xattr -dr com.apple.quarantine /Applications/Switchboard.app
    ```
 
-Permissions granted to 1.0.3 carry over. If macOS asks whether Switchboard may
-accept incoming network connections, allow it so your iPhone can connect.
+4. For the keyboard keys, turn on **Switchboard** in System Settings → Privacy &
+   Security, under both **Input Monitoring** and **Device Control and Data
+   Access**. Permissions carry over from 1.0.3.
+
+### Highlights
+
+- Switch external screens off and on, using DDC/CI standby or a software
+  disconnect, without affecting your other screens.
+- Combined brightness, contrast, volume and resolution for every screen, plus
+  an All Screens brightness slider.
+- Brightness keys for external displays, including Apple keyboards, and volume
+  keys for monitor speakers.
+- Match Light & Dark Mode, switch off while locked, and one Reset to Defaults.
+
+See the [changelog](https://github.com/BireshwarChakravarty/SwitchBoard/blob/main/CHANGELOG.md)
+for every change. Built and tested automatically on macOS 26.
