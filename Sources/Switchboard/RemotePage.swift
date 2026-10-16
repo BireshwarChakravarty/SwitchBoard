@@ -35,7 +35,7 @@ enum RemotePage {
       --bg-1: #e9eef7; --bg-2: #f6f1ea;
       --card: rgba(255,255,255,.62); --card-edge: rgba(255,255,255,.75);
       --row: rgba(0,0,0,.045); --text: #1c1c1e; --muted: #6b6b72;
-      --track: rgba(0,0,0,.09); --fill: #ffffff; --fill-edge: rgba(0,0,0,.08);
+      --track: rgba(0,0,0,.14); --fill: #ffffff; --fill-edge: rgba(0,0,0,.1);
       --accent: #0a84ff; --danger: #ff3b30; --warn: #ff9f0a;
     }
     @media (prefers-color-scheme: dark) {
@@ -49,14 +49,17 @@ enum RemotePage {
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html { background: var(--bg-1); }
     body {
-      margin: 0; min-height: 100vh; color: var(--text);
+      margin: 0; min-height: 100vh; color: var(--text); background: var(--bg-1);
       font: 15px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      -webkit-user-select: none; user-select: none;
+    }
+    /* A fixed backdrop (iOS ignores background-attachment: fixed). */
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -1;
       background:
         radial-gradient(120% 60% at 0% 0%, rgba(10,132,255,.18), transparent 60%),
         radial-gradient(100% 60% at 100% 100%, rgba(191,90,242,.16), transparent 60%),
         linear-gradient(160deg, var(--bg-1), var(--bg-2));
-      background-attachment: fixed;
-      -webkit-user-select: none; user-select: none;
     }
     main {
       max-width: 520px; margin: 0 auto;
@@ -114,7 +117,7 @@ enum RemotePage {
     .link { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--row); }
     .link .what { font-size: 14px; font-weight: 600; }
     .link .url { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted);
-      word-break: break-all; -webkit-user-select: all; user-select: all; }
+      word-break: break-all; }
 
     button { font: inherit; font-weight: 600; border: 0; border-radius: 999px; padding: 9px 16px;
       background: var(--row); color: var(--text); cursor: pointer; }
@@ -124,6 +127,7 @@ enum RemotePage {
 
     #pair { text-align: center; padding: 24px 12px; }
     #pair p { color: var(--muted); margin: 8px 0 18px; }
+    #pair .title { font-size: 20px; font-weight: 700; margin: 0; }
     #code { width: 100%; max-width: 260px; font: 600 32px ui-monospace, SFMono-Regular, Menlo, monospace;
       letter-spacing: .3em; text-align: center; padding: 12px; border-radius: 16px; border: 0;
       background: var(--row); color: var(--text); -webkit-user-select: text; user-select: text; }
@@ -150,7 +154,7 @@ enum RemotePage {
         <div class="badge on" style="margin: 0 auto 12px; width: 52px; height: 52px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></svg>
         </div>
-        <h2 style="font-size: 20px; margin: 0">Pair this iPhone</h2>
+        <div class="title">Pair this iPhone</div>
         <p>Enter the code shown on your Mac in<br>Switchboard → Settings → iPhone Remote.</p>
         <form id="pairForm">
           <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000" aria-label="Pairing code">
@@ -180,7 +184,7 @@ enum RemotePage {
                 <li>Tap <b>Show More</b> and set <b>Method</b> to <b>POST</b>.</li>
                 <li>Name the shortcut, for example “ARZOPA Off”. Say it to Siri to run it.</li>
               </ol>
-              Each link contains this iPhone's key: keep them to yourself. Your iPhone must be on the same network as the Mac.
+              Copied links include this iPhone's key (shown here as •••), so keep them to yourself. Your iPhone must be on the same network as the Mac.
             </div>
             <div id="links"></div>
           </details>
@@ -465,10 +469,10 @@ enum RemotePage {
         try { ok = document.execCommand("copy"); } catch (e) {}
         document.body.removeChild(field);
         if (!ok && navigator.clipboard) {
-          navigator.clipboard.writeText(text).then(function () { toast("Copied"); }, function () { toast("Press and hold the link to copy it"); });
+          navigator.clipboard.writeText(text).then(function () { toast("Copied"); }, function () { toast("Couldn't copy. Try again."); });
           return;
         }
-        toast(ok ? "Copied" : "Press and hold the link to copy it");
+        toast(ok ? "Copied" : "Couldn't copy. Try again.");
       }
 
       function renderLinks() {
@@ -491,7 +495,7 @@ enum RemotePage {
           var row = el("div", "link");
           var text = el("div", "grow");
           text.appendChild(el("div", "what", item[0]));
-          text.appendChild(el("div", "url", url));
+          text.appendChild(el("div", "url", base + item[1] + "?key=•••"));
           var button = el("button", "small", "Copy");
           button.type = "button";
           button.addEventListener("click", function () { copy(url); });

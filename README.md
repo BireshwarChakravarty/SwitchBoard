@@ -72,6 +72,14 @@ dependencies and makes no network connections.
 - Volume and mute keys control monitor speakers, which macOS can't adjust over
   HDMI or DisplayPort.
 
+**iPhone Remote**
+- Control your screens from an iPhone: power, brightness, contrast, volume and
+  resolution, from a page you add to the Home Screen like an app.
+- Siri and Shortcuts: one-tap shortcuts such as "ARZOPA Off" or "Brightness
+  50%", for Siri, the Home Screen, Control Center or automations.
+- Off unless you turn it on. Local network only, and a phone must pair with a
+  code shown on the Mac.
+
 **Design**
 - Laid out like Control Center: a list of screens, large titled sliders for the
   selected screen, and a collapsible Settings section.
@@ -177,6 +185,47 @@ Switchboard receives and what it did.
 On Apple keyboards, macOS may still show its own "not supported" indicator
 alongside Switchboard's. Reading the keyboard directly can't suppress it.
 
+### iPhone Remote
+
+Turn on **Settings → iPhone Remote**. Switchboard shows an address such as
+`http://Your-Mac-mini.local:8723` and a six-digit pairing code.
+
+1. On your iPhone, on the same Wi-Fi as the Mac, open the address in Safari.
+2. Enter the pairing code. The iPhone is now paired; nothing else on your
+   network can use the remote without its own code.
+3. In Safari's Share menu, choose **Add to Home Screen**. Switchboard then
+   opens full screen from its own icon. (A Home Screen web app keeps its own
+   storage, so it may ask for a code once more.)
+
+The page shows your screens with their power switches, and the selected
+screen's brightness, contrast, volume and resolution. Changes on the Mac show
+up within a few seconds.
+
+**Shortcuts and Siri.** Open **Shortcuts & Siri** on the page for ready-made
+links, each with a Copy button. In the Shortcuts app, add the **Get Contents
+of URL** action, paste a link, and set **Method** to **POST**. Name the
+shortcut, for example "ARZOPA Off", and Siri runs it when you say its name.
+You can also add it to the Home Screen or Control Center, or run it from an
+automation.
+
+| Link | Action |
+|---|---|
+| `/api/screens/<screen>/on`, `/off`, `/toggle` | Switch a screen on, off, or over |
+| `/api/screens/<screen>/brightness/<0–100>` | Set brightness (also `contrast` and `volume`) |
+| `/api/screens/<screen>/resolution/<n>` | Choose a resolution by its position in the list, smallest first |
+| `/api/screens/all/brightness/<0–100>` | Set every screen's brightness |
+| `GET /api/screens` | Every screen's state, as JSON |
+
+`<screen>` is the screen's name in any case, without spaces if you like
+(`arzopa`, `xv272k-v5`), or enough of it to be unique. Every request needs the
+paired key, which the copied links include as `?key=…`; an
+`Authorization: Bearer <key>` header works too.
+
+The remote follows the menu's rules: a screen whose power switch you've hidden
+can't be switched off remotely, and neither can the last screen that's on.
+**Forget All** in Settings unpairs every device, and turning the remote off
+closes it completely.
+
 ## How it works
 
 | Feature | Implementation |
@@ -190,6 +239,7 @@ alongside Switchboard's. Reading the keyboard directly can't suppress it.
 | Monitor speakers | Core Audio identifies HDMI or DisplayPort output without a volume control; the volume is set over DDC/CI |
 | Brightness keys | `IOHIDManager` reads keyboards' brightness usages; a `CGEventTap` handles system media-key events |
 | Start at Login | `SMAppService` |
+| iPhone Remote | A small HTTP server on `Network.framework` (`NWListener`), serving a self-contained web page and a JSON API. Pairing keys are random 256-bit values; only their SHA-256 hashes are stored. |
 
 The DDC/CI approach on Apple Silicon follows the open-source
 [m1ddc](https://github.com/waydabber/m1ddc) and
@@ -197,8 +247,10 @@ The DDC/CI approach on Apple Silicon follows the open-source
 
 ## Privacy and safety
 
-- **No network access.** Switchboard makes no network connections and collects
-  no data.
+- **No internet access.** Switchboard never connects to the internet and
+  collects no data. The optional iPhone Remote listens on your local network
+  only while it's turned on, and only paired devices can use it. Its traffic
+  is unencrypted HTTP, so use it on a network you trust.
 - **Keyboard access is narrow.** Switchboard only acts on brightness, volume
   and mute keys. Every other key passes through untouched and is never stored
   or logged.
@@ -225,6 +277,7 @@ log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"
 | Problem | What to do |
 |---|---|
 | Keyboard keys do nothing | Check **Settings → Keyboard Keys**. A permission notice there links to the right page. If you updated from 1.0.2 or earlier, remove Switchboard from both permission lists with **−** and allow it again; from 1.0.3 on, permissions carry over to updates. Quit other display utilities. |
+| iPhone can't open the remote | Make sure the iPhone is on the same Wi-Fi as the Mac and the remote is on. Try the numeric address shown under it in Settings. If macOS asked whether Switchboard may accept incoming connections, allow it (System Settings → Network → Firewall → Options). |
 | *Not responding to DDC/CI* | Turn on DDC/CI in the monitor's own menu, or try another cable, port or adapter. Use **Switch Off By → Disconnecting** for monitors without DDC/CI. |
 | Only a *Brightness (Software)* slider | The monitor didn't answer DDC/CI read requests. Look for `No reply reading VCP` in the log. |
 | A control affects the wrong monitor | Each DDC/CI lookup logs every candidate port with its EDID UUID and match score. [Open an issue](https://github.com/BireshwarChakravarty/SwitchBoard/issues/new/choose) with those lines. |
@@ -294,6 +347,12 @@ Sources/Switchboard/
 ├── Displays.swift            Display lists
 ├── Preferences.swift         Settings
 ├── Reset.swift               Restores every screen (--reset, Reset to Defaults)
+├── RemoteControl.swift       iPhone Remote: settings, pairing and API actions
+├── RemoteServer.swift        Local-network HTTP server (NWListener)
+├── RemoteHTTP.swift          HTTP request parsing and responses
+├── RemoteRoutes.swift        API routes and screen-name matching
+├── RemotePairing.swift       Pairing codes and keys
+├── RemotePage.swift          The iPhone web page
 ├── LoginItem.swift           Start at Login
 ├── Log.swift                 Unified logging
 └── MenuBarIcon.swift         Menu-bar icon, drawn in code

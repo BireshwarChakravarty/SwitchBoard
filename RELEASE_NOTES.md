@@ -1,32 +1,29 @@
-Switchboard is a menu-bar control panel for external displays on Apple Silicon
-Macs running macOS 26 or later.
+**Beta.** This pre-release adds the iPhone Remote. Everything else works as in
+1.0.3, and the remote stays off unless you turn it on. If anything misbehaves,
+reinstall [1.0.3](https://github.com/BireshwarChakravarty/SwitchBoard/releases/tag/v1.0.3).
+
+### New: iPhone Remote
+
+- Control your screens from your iPhone: power, brightness, contrast, volume
+  and resolution, from a page you add to the Home Screen like an app.
+- Siri and Shortcuts: ready-made links for one-tap shortcuts such as
+  "ARZOPA Off" or "Brightness 50%".
+- Local network only. A phone pairs once with a code shown on the Mac.
+
+To try it, turn on **Settings → iPhone Remote** in Switchboard, then open the
+address it shows in Safari on your iPhone and enter the pairing code. See
+[iPhone Remote](https://github.com/BireshwarChakravarty/SwitchBoard#iphone-remote)
+in the README.
 
 ### Install
 
 1. Download **Switchboard.zip** below and unzip it.
 2. Move **Switchboard.app** to your Applications folder.
-3. Switchboard is ad-hoc signed rather than notarized. The first time, right-click
-   the app and choose **Open**, then **Open** again, or run:
+3. Switchboard is ad-hoc signed rather than notarized. The first time, run:
 
    ```bash
    xattr -dr com.apple.quarantine /Applications/Switchboard.app
    ```
 
-4. For the keyboard keys, turn on **Switchboard** in System Settings → Privacy &
-   Security, under both **Input Monitoring** and **Device Control and Data
-   Access**.
-
-### Highlights
-
-- Switch external screens off and on, using DDC/CI standby or a software
-  disconnect, without affecting your other screens.
-- Combined brightness, contrast, volume and resolution for every screen, plus
-  an All Screens brightness slider.
-- Brightness keys for external displays, including Apple keyboards, and volume
-  keys for monitor speakers.
-- Match Light & Dark Mode, switch off while locked, and one Reset to Defaults
-  for everything.
-
-See the [README](https://github.com/BireshwarChakravarty/SwitchBoard#readme)
-for details and the [changelog](https://github.com/BireshwarChakravarty/SwitchBoard/blob/main/CHANGELOG.md)
-for every change. Built and tested automatically on macOS 26.
+Permissions granted to 1.0.3 carry over. If macOS asks whether Switchboard may
+accept incoming network connections, allow it so your iPhone can connect.
