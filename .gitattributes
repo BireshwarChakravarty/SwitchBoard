@@ -1,0 +1,5 @@
+# Treat images and the icon as binary; keep shell scripts LF.
+*.png binary
+*.icns binary
+*.sh text eol=lf
+Makefile text eol=lf

@@ -28,14 +28,15 @@ Command Line Tools are enough (`xcode-select --install`).
 ```bash
 git clone https://github.com/BireshwarChakravarty/SwitchBoard.git
 cd SwitchBoard
-swift build          # debug build
-swift test           # unit tests
-swift run            # run without installing
-./make-app.sh        # build and install into /Applications
+make test       # unit tests
+swift run       # run without installing
+make install    # build, then cleanly install into /Applications
+make help       # every task
 ```
 
 The app's behaviour depends on real monitors, so test changes with the
-installed app as well as with `swift test`.
+installed app as well as with `make test`. [docs/architecture.md](docs/architecture.md)
+explains how the code is organised.
 
 ## Guidelines
 
@@ -48,8 +49,11 @@ installed app as well as with `swift test`.
 - **Never leave a screen stuck.** Anything that switches off, disconnects or
   dims a screen must be undone by Quit, by Reset to Defaults, and when the app
   exits unexpectedly.
-- **Log, don't print.** Use the categories in `Log.swift`. Never log ordinary
-  keystrokes or other personal data.
+- **Log, don't print.** Use the categories in `Support/Log.swift`. Never log
+  ordinary keystrokes, pairing keys or other personal data.
+- **The remote is just another client.** It must act only through
+  `DisplayController`'s public methods, so it can never do something the menu
+  can't.
 - **Add tests for pure logic.** Packet encoding, parsing, curves and key
   decoding are covered in `Tests/SwitchboardTests`. Follow that pattern for new
   logic that doesn't need hardware.
@@ -60,17 +64,31 @@ installed app as well as with `swift test`.
 
 1. Create a branch from `main`.
 2. Make your change, with tests where possible.
-3. Run `swift build` and `swift test`, and try the change with the installed app.
+3. Run `make test`, and try the change with the installed app (`make install`).
 4. Add an entry under **Unreleased** in [CHANGELOG.md](CHANGELOG.md).
 5. Open a pull request describing what changed, why, and how you tested it,
    including which monitors you used.
 
-Continuous integration builds and tests every pull request on macOS 26.
+CI builds, tests and packages every push and pull request on macOS 26.
 
-## Releases
+## Releasing
 
-Maintainers publish a release by running the **Build and test** workflow
-manually with a version number, for example `2.0.0`. The workflow builds,
-tests and packages the app, creates the tag, and publishes the release with
-`Switchboard.zip` attached. Update `CFBundleShortVersionString` in
-`Resources/Info.plist` and the changelog first.
+Switchboard follows [Semantic Versioning](https://semver.org/): patch
+releases (2.0.1) for fixes, minor releases (2.1.0) for new features, and major
+releases (3.0.0) for changes that break existing behaviour or settings.
+
+1. Set the new version in `VERSION`.
+2. In `CHANGELOG.md`, rename **Unreleased** to `## [x.y.z] - YYYY-MM-DD`, start
+   a new empty **Unreleased** section, and update the links at the bottom.
+3. Commit to `main` and wait for CI to pass.
+4. Run the **Release** workflow from the Actions tab.
+
+The workflow builds, tests and packages the app, then publishes `vx.y.z` with
+`Switchboard.zip` attached and the changelog section as its notes. It refuses
+a version that's already released, isn't valid semver, or has no changelog
+entry. A version with a pre-release label, such as `2.1.0-beta.1`, is
+published as a pre-release and may come from any branch; stable releases come
+from `main`.
+
+Build numbers are counted from git commits automatically; never edit them, or
+the version in `Resources/Info.plist`, by hand.

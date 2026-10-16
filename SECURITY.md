@@ -22,6 +22,13 @@ Switchboard asks for two macOS permissions, both used only for keyboard keys:
   handles brightness, volume and mute keys. Every other event passes through
   unchanged.
 
-Switchboard makes no network connections. It uses undocumented macOS functions
-for DDC/CI on Apple Silicon and for disconnecting screens, and it changes
-display settings only for as long as it runs.
+Switchboard never contacts the internet. The optional iPhone Remote, off by
+default, serves an HTTP API on the local network while it's on. Only paired
+devices can use it: pairing takes a six-digit code shown on the Mac, five
+wrong codes replace the code, and keys are random 256-bit values stored only
+as SHA-256 hashes. The traffic isn't encrypted, so the remote is meant for
+trusted networks. See [docs/remote-api.md](docs/remote-api.md).
+
+Switchboard uses undocumented macOS functions for DDC/CI on Apple Silicon and
+for disconnecting screens, and it changes display settings only for as long as
+it runs.
