@@ -6,45 +6,30 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-10-16
+## [2.0.0] - 2026-10-16
+
+First published as 1.1.0 (with two 1.1.0 betas) and renamed 2.0.0.
 
 ### Added
 - **iPhone Remote** (Settings → iPhone Remote, off by default). Control your
   screens from an iPhone on the same network: a web page you add to the Home
   Screen, with power switches, brightness, contrast, volume, resolution and
-  All Screens brightness. Phones pair once with a six-digit code.
-- **Siri shortcuts:** Add Shortcuts… builds, signs and opens ready-made
-  shortcuts ("ARZOPA On", "ARZOPA Off", "Toggle ARZOPA", "Screen Brightness");
-  iCloud syncs them to the iPhone. The page also offers links for your own
-  shortcuts.
-
-Everything from 1.1.0-beta.1 and 1.1.0-beta.2, below.
-
-## [1.1.0-beta.2] - 2026-10-16
-
-### Added
-- **Add Shortcuts…** (Settings → iPhone Remote) builds ready-made Siri
-  shortcuts: "<Screen> On", "<Screen> Off" and "Toggle <Screen>" for each
-  screen with a power switch, and "Screen Brightness", which asks for a
-  number. They're signed on the Mac and opened in the Shortcuts app; iCloud
-  syncs them to the iPhone. Siri reads out the result.
+  All Screens brightness. Changes made on the Mac show up within seconds.
+- **Siri shortcuts.** Add Shortcuts… builds "<Screen> On", "<Screen> Off" and
+  "Toggle <Screen>" for each screen with a power switch, and "Screen
+  Brightness", which asks for a number. They're signed on the Mac with Apple's
+  `shortcuts` tool and opened in the Shortcuts app; iCloud syncs them to the
+  iPhone, and Siri reads out the result. The page also offers links for your
+  own shortcuts.
+- **Pairing.** A phone pairs once with a six-digit code shown on the Mac and
+  gets a random key; only its SHA-256 hash is stored. Five wrong codes replace
+  the code. Forget All unpairs every device, and Reset to Defaults turns the
+  remote off.
+- The remote follows the menu's rules: a hidden power switch can't be used
+  remotely, and the last screen that's on can't be switched off.
 
 ### Changed
-- The remote's API rounds decimal values ("40.5" → 41) and includes a
-  readable `message` in error replies too.
-
-## [1.1.0-beta.1] - 2026-10-16
-
-### Added
-- **iPhone Remote** (Settings → iPhone Remote, off by default). Control your
-  screens from an iPhone on the same network: a web page you add to the Home
-  Screen, with power switches, brightness, contrast, volume, resolution and
-  All Screens brightness.
-- **Shortcuts and Siri**: ready-made links for the Shortcuts app's Get
-  Contents of URL action, such as "ARZOPA Off" or "Brightness 50%".
-- Pairing with a six-digit code shown on the Mac. Devices get a random key;
-  only its hash is stored. Five wrong codes replace the code. Forget All
-  unpairs every device, and Reset to Defaults turns the remote off.
+- Updated the build's GitHub Actions (checkout and upload-artifact v7).
 
 ## [1.0.3] - 2026-10-16
 
@@ -116,10 +101,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.1.0...HEAD
-[1.1.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.3...v1.1.0
-[1.1.0-beta.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.1.0-beta.1...v1.1.0-beta.2
-[1.1.0-beta.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.3...v1.1.0-beta.1
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.3...v2.0.0
 [1.0.3]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.0...v1.0.1

@@ -70,7 +70,7 @@ Continuous integration builds and tests every pull request on macOS 26.
 ## Releases
 
 Maintainers publish a release by running the **Build and test** workflow
-manually with a version number, for example `1.1.0`. The workflow builds,
+manually with a version number, for example `2.0.0`. The workflow builds,
 tests and packages the app, creates the tag, and publishes the release with
 `Switchboard.zip` attached. Update `CFBundleShortVersionString` in
 `Resources/Info.plist` and the changelog first.

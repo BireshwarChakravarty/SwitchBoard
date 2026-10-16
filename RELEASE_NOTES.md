@@ -1,7 +1,7 @@
 Switchboard is a menu-bar control panel for external displays on Apple Silicon
 Macs running macOS 26 or later.
 
-### New in 1.1: iPhone Remote and Siri
+### New in 2.0: iPhone Remote and Siri
 
 - **Control your screens from your iPhone:** power, brightness, contrast,
   volume and resolution, from a page you add to the Home Screen like an app.
@@ -28,7 +28,7 @@ in the README for setup.
 
 4. For the keyboard keys, turn on **Switchboard** in System Settings → Privacy &
    Security, under both **Input Monitoring** and **Device Control and Data
-   Access**. Permissions carry over from 1.0.3.
+   Access**. Permissions carry over from 1.0.3 and later.
 
 ### Highlights
 
