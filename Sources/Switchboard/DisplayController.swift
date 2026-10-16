@@ -20,6 +20,8 @@ struct ManagedDisplay: Identifiable, Hashable {
     var autoOff = false
     /// Why the last attempt failed, shown under the name.
     var problem: String?
+    /// Neutral progress or result text (e.g. after a factory reset).
+    var notice: String?
     /// "Mirrored to <screen>" / "Mirror of <screen>".
     var mirrorNote: String?
     /// Hardware controls the monitor reported over DDC/CI (nil = unavailable).
@@ -61,6 +63,8 @@ final class DisplayController: ObservableObject {
     @Published private(set) var selectedDisplayID: CGDirectDisplayID?
     /// Whether the Settings section of the menu is expanded.
     @Published private(set) var settingsExpanded = false
+    /// Whether the selected screen's options are shown.
+    @Published private(set) var screenOptionsExpanded = false
     /// Reset to Defaults was clicked and awaits confirmation.
     @Published private(set) var confirmingReset = false
 
@@ -86,6 +90,7 @@ final class DisplayController: ObservableObject {
     /// Last identity seen for every external display, kept after it goes offline.
     private var identities: [CGDirectDisplayID: DisplayIdentity] = [:]
     private var problems: [CGDirectDisplayID: String] = [:]
+    private var notices: [CGDirectDisplayID: String] = [:]
     /// Names looked up from the IORegistry, for displays NSScreen doesn't name.
     private var registryNames: [CGDirectDisplayID: String] = [:]
 
@@ -242,6 +247,7 @@ final class DisplayController: ObservableObject {
             isOn: intents[id] ?? true // assume on until we switch it
         )
         display.problem = problems[id]
+        display.notice = notices[id]
         guard !isBuiltIn, let key = identities[id]?.key else { return display }
 
         display.offMethod = Preferences.offMethod(for: key)
@@ -456,36 +462,56 @@ final class DisplayController: ObservableObject {
     /// back. Both commands are optional in the DDC/CI standard and some
     /// monitors ignore them, so say so if nothing changed.
     func restoreFactoryPicture(for id: CGDirectDisplayID, everything: Bool = false) {
-        guard let identity = identities[id] else { return }
+        guard let identity = identities[id] else {
+            Log.ddc.error("Factory restore: no identity for display \(id)")
+            return
+        }
+        let command = everything ? VCP.restoreFactoryDefaults : VCP.restoreFactoryLuminanceContrast
+        Log.ddc.info("Factory restore (0x\(String(format: "%02X", command), privacy: .public)) requested for \(identity.name, privacy: .public)")
         problems[id] = nil
+        notices[id] = everything ? "Restoring all factory settings…" : "Restoring factory brightness & contrast…"
         // Our software dimming sits on top of the hardware: clear it too.
         dimmer.setLevel(1, for: id)
+        refresh()
+
         let before = ddcValues[id] ?? [:]
-        let command = everything ? VCP.restoreFactoryDefaults : VCP.restoreFactoryLuminanceContrast
         let ddc = self.ddc
         ddcQueue.async {
             let sent = ddc.write(command, value: 1, for: identity)
             // Give the monitor time to apply it before reading back.
             Thread.sleep(forTimeInterval: 1.5)
             var after: [UInt8: VCPValue] = [:]
-            for vcp in [VCP.brightness, VCP.contrast, VCP.volume] {
-                if let value = ddc.read(vcp, for: identity) { after[vcp] = value }
+            if sent {
+                for vcp in [VCP.brightness, VCP.contrast, VCP.volume] {
+                    if let value = ddc.read(vcp, for: identity) { after[vcp] = value }
+                }
             }
             let result = after
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                let changed = result.contains { vcp, value in before[vcp]?.current != value.current }
-                Log.ddc.info("Factory restore (0x\(String(format: "%02X", command), privacy: .public)) on \(identity.name, privacy: .public): sent \(sent), changed \(changed)")
-                if !sent {
-                    self.problems[id] = "Couldn't send the factory reset"
-                } else if !changed && !before.isEmpty {
-                    self.problems[id] = everything
-                        ? "The monitor ignored the factory reset"
-                        : "Monitor ignored it. Try Restore All Factory Settings"
+                let outcome = FactoryRestoreOutcome.evaluate(sent: sent, before: before, after: result)
+                Log.ddc.info("Factory restore on \(identity.name, privacy: .public): \(String(describing: outcome), privacy: .public)")
+                let message = outcome.message
+                if message.isProblem {
+                    self.notices[id] = nil
+                    self.problems[id] = message.text
+                } else {
+                    self.notices[id] = message.text
+                    self.clearNotice(for: id, after: 8, ifStill: message.text)
                 }
                 if !result.isEmpty { self.ddcValues[id] = result }
                 self.refresh()
             }
+        }
+    }
+
+    /// Remove a notice after a while, unless something replaced it.
+    private func clearNotice(for id: CGDirectDisplayID, after seconds: Double, ifStill text: String) {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard let self, self.notices[id] == text else { return }
+            self.notices[id] = nil
+            self.updateRow(id) { $0.notice = nil }
         }
     }
 
@@ -880,6 +906,17 @@ final class DisplayController: ObservableObject {
 
     func toggleSettings() {
         settingsExpanded.toggle()
+    }
+
+    func toggleScreenOptions() {
+        screenOptionsExpanded.toggle()
+    }
+
+    /// The user hid this screen's power switch (independent of the rule
+    /// that the last screen still on has none).
+    func isSwitchHidden(_ id: CGDirectDisplayID) -> Bool {
+        guard let key = identities[id]?.key else { return false }
+        return Preferences.switchVisible(for: key) == false
     }
 
     /// "Switchboard 1.0" from the bundle (just "Switchboard" under `swift run`).

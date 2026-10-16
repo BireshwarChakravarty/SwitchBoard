@@ -165,6 +165,11 @@ private struct StatusLine: View {
                 .font(.caption)
                 .foregroundStyle(.orange)
                 .lineLimit(1)
+        } else if let notice = display.notice {
+            Text(notice)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
         } else if let text {
             Text(text)
                 .font(.caption)
@@ -227,6 +232,76 @@ private struct ScreenOptions: View {
 
 // MARK: - Selected screen
 
+/// A screen's options, shown inline in its card (⋯).
+private struct ScreenOptionsPanel: View {
+    let display: ManagedDisplay
+    @ObservedObject var controller: DisplayController
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Switch Off By")
+                    .font(.subheadline.weight(.medium))
+                Picker("Switch Off By", selection: Binding(
+                    get: { display.offMethod },
+                    set: { controller.setOffMethod($0, for: display.id) }
+                )) {
+                    Text("Standby").tag(OffMethod.standby)
+                    Text("Disconnect").tag(OffMethod.disconnect)
+                    Text("Black Out").tag(OffMethod.blackout)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+
+            SwitchRow(title: "Switch off while locked or asleep", isOn: Binding(
+                get: { display.autoOff },
+                set: { controller.setAutoOff($0, for: display.id) }
+            ))
+            SwitchRow(title: "Hide power switch", isOn: Binding(
+                get: { controller.isSwitchHidden(display.id) },
+                set: { controller.setSwitchVisible(!$0, for: display.id) }
+            ))
+
+            if display.brightness != nil || display.contrast != nil {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Factory Settings")
+                        .font(.subheadline.weight(.medium))
+                    HStack(spacing: 8) {
+                        Button("Restore Brightness & Contrast") {
+                            controller.restoreFactoryPicture(for: display.id)
+                        }
+                        Button("Restore All Settings") {
+                            controller.restoreFactoryPicture(for: display.id, everything: true)
+                        }
+                    }
+                    .buttonStyle(.glass)
+                    .controlSize(.small)
+                }
+            }
+        }
+    }
+}
+
+/// A plain label with a small switch at the trailing edge.
+private struct SwitchRow: View {
+    let title: String
+    let isOn: Binding<Bool>
+
+    var body: some View {
+        HStack {
+            Text(title).font(.callout)
+            Spacer(minLength: 8)
+            Toggle(title, isOn: isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+        }
+    }
+}
+
 /// The selected screen's controls: Brightness, Contrast, Volume, Resolution.
 private struct ScreenControlsCard: View {
     let display: ManagedDisplay
@@ -240,10 +315,15 @@ private struct ScreenControlsCard: View {
             } else {
                 offState
             }
+            if controller.screenOptionsExpanded && display.canToggle {
+                ScreenOptionsPanel(display: display, controller: controller)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .padding(14)
         .glassEffect(.regular, in: .rect(cornerRadius: Metrics.cardRadius))
         .animation(.snappy(duration: 0.25), value: display.isOn)
+        .animation(.snappy(duration: 0.25), value: controller.screenOptionsExpanded)
     }
 
     private var header: some View {
@@ -256,19 +336,14 @@ private struct ScreenControlsCard: View {
             }
             Spacer()
             if display.canToggle {
-                Menu {
-                    ScreenOptions(display: display, controller: controller)
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 20, height: 20)
+                // Options open inline rather than in a pop-up menu: menus
+                // shown from a menu-bar window don't reliably run their actions.
+                CircleButton(
+                    icon: controller.screenOptionsExpanded ? "xmark" : "ellipsis",
+                    help: controller.screenOptionsExpanded ? "Hide Options" : "Options for \(display.name)"
+                ) {
+                    controller.toggleScreenOptions()
                 }
-                .menuStyle(.button)
-                .menuIndicator(.hidden)
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .fixedSize()
-                .help("Options for \(display.name)")
             }
         }
     }

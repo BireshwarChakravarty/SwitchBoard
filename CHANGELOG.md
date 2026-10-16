@@ -6,6 +6,17 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-16
+
+### Fixed
+- Restoring factory settings did nothing: actions in the pop-up options menu
+  didn't run from the menu-bar window. Screen options (**⋯**) now open inline
+  in the screen's card, with a segmented Switch Off By control, switches and
+  buttons. Right-click still offers the same options as a menu.
+- Restoring factory settings now always reports its result: progress while it
+  runs, then the values the monitor reports afterwards, or that the monitor
+  ignored the command, couldn't be reached, or didn't report back.
+
 ### Changed
 - Rewrote the README and added contributor documentation, issue templates and
   a security policy.
@@ -32,5 +43,6 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/BireshwarChakravarty/SwitchBoard/releases/tag/v1.0.0

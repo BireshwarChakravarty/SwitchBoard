@@ -130,7 +130,7 @@ permissions.
 | Section | What it does |
 |---|---|
 | **Screens** | Every connected screen, with its status (for example *Mirrored to …* or *Disconnected*) and a power switch. Click a screen to show its controls. |
-| **Selected screen** | Brightness, Contrast, Volume and Resolution sliders, with live values. The **⋯** button opens that screen's options. |
+| **Selected screen** | Brightness, Contrast, Volume and Resolution sliders, with live values. The **⋯** button shows that screen's options in the card. |
 | **Brightness · All Screens** | One slider for every screen. Shown when two or more screens can be adjusted. |
 | **Settings** | Keyboard Keys, Match Light & Dark Mode, and Start at Login. |
 | **Footer** | Reset to Defaults, Refresh Screens, and Quit. |
@@ -140,20 +140,20 @@ every screen off at once.
 
 ### Screen options
 
-Open them with **⋯** on the selected screen, or by right-clicking a screen in
-the list.
+Open them with **⋯** on the selected screen (they appear in the screen's card),
+or by right-clicking a screen in the list.
 
 | Option | Description |
 |---|---|
 | **Switch Off By** | How the screen is switched off: **DDC/CI Standby** (the monitor sleeps), **Disconnecting** (macOS stops using the screen), or **Blacking Out** (the picture goes black and the backlight stays on). Switchboard chooses automatically: the first time a monitor doesn't respond to DDC/CI, it switches to disconnecting and remembers the choice. |
 | **Switch Off While Locked or Asleep** | Switches the screen off when the Mac locks or sleeps, and back on when you unlock it. |
-| **Hide Power Switch** | Removes the switch for a screen you never turn off. |
-| **Restore Factory Brightness & Contrast** | Asks the monitor to restore its factory brightness and contrast. |
-| **Restore All Factory Settings** | Asks the monitor to reset everything, like the Reset option in its own menu. |
+| **Hide power switch** | Removes the switch for a screen you never turn off. |
+| **Restore Brightness & Contrast** | Asks the monitor to restore its factory brightness and contrast. |
+| **Restore All Settings** | Asks the monitor to reset everything, like the Reset option in its own menu. |
 
 Both factory commands are optional in the DDC/CI standard. Switchboard reads
-the monitor's settings back afterwards and tells you if the monitor ignored
-the request.
+the monitor's settings back afterwards and shows the result under the screen's
+name: the restored values, or that the monitor ignored the request.
 
 ### Keyboard keys
 
