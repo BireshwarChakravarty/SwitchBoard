@@ -113,15 +113,17 @@ screen off.
 
 Brightness keys (and volume keys, for monitor speakers) are on from the
 first launch. macOS only lets an app react
-to them with **Accessibility** permission, so Switchboard asks for it on
+to them with **Device Control and Data Access** permission (called
+**Accessibility** before macOS 27), so Switchboard asks for it on
 launch:
 
 1. In the prompt, click **Open System Settings**.
-2. Turn on **Switchboard** under Privacy & Security → Accessibility.
+2. Turn on **Switchboard** under Privacy & Security → Device Control and Data
+   Access.
 
 The keys start working within a couple of seconds, with no relaunch needed.
 Until then the Keyboard Keys row (under **Settings**) shows **Needs
-Accessibility access**, with a button straight to that setting.
+Device Control access**, with a button straight to that setting.
 
 - The line under **Keyboard Keys** shows what's happening, for example
   "Listening (HID level) · press a brightness key" or
@@ -174,7 +176,8 @@ log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"
 ```
 
 - **Keyboard keys do nothing**: check Switchboard is on under Privacy &
-  Security → Accessibility (after a rebuild, turn it off and on). In the
+  Security → Device Control and Data Access (after a rebuild, turn it off and
+  on). Quit BetterDisplay or other display apps: they catch the keys first. In the
   log, `Keys: listening` means the keys are being caught, and each press logs
   `Key brightnessUp` (or similar). If presses never appear, your keyboard
   doesn't send standard brightness keys.

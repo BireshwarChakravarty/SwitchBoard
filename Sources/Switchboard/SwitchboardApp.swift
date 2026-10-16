@@ -556,7 +556,7 @@ private struct PermissionNotice: View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-            Text("Needs Accessibility access")
+            Text("Needs Device Control access")
                 .font(.caption)
             Spacer()
             Button("Open Settings") { controller.openAccessibilitySettings() }

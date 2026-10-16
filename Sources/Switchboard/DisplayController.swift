@@ -821,9 +821,16 @@ final class DisplayController: ObservableObject {
         refresh()
     }
 
+    /// Open Privacy & Security → Device Control and Data Access (called
+    /// Accessibility before macOS 27). Tries the current Settings URL first,
+    /// then the older one.
     func openAccessibilitySettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-            NSWorkspace.shared.open(url)
+        let candidates = [
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+        ]
+        for candidate in candidates {
+            if let url = URL(string: candidate), NSWorkspace.shared.open(url) { return }
         }
     }
 
