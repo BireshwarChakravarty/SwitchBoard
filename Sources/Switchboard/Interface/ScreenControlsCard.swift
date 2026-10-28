@@ -54,7 +54,10 @@ struct ScreenControlsCard: View {
         if !hasAny {
             Text(display.isBuiltIn
                  ? "Use the system's brightness controls for the built-in display."
+                 : display.isPowerOnly
+                 ? "This monitor can only be switched on and off from the Mac. Set its brightness with its own buttons."
                  : "Reading the monitor's settings…")
+                .fixedSize(horizontal: false, vertical: true)
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
@@ -184,6 +187,13 @@ struct ScreenOptionsPanel: View {
                 get: { controller.isSwitchHidden(display.id) },
                 set: { controller.setSwitchVisible(!$0, for: display.id) }
             ))
+            if display.offMethod != .standby {
+                // No DDC/CI: offer software dimming, off by default.
+                SwitchRow(title: "Dim in software", isOn: Binding(
+                    get: { display.softwareDimming },
+                    set: { controller.setSoftwareDimming($0, for: display.id) }
+                ))
+            }
         }
     }
 }

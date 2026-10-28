@@ -6,6 +6,19 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-28
+
+### Changed
+- Monitors without DDC/CI, such as many portable displays, are now power-only
+  by default: Switchboard switches them on and off and never touches their
+  picture. They no longer get a software brightness slider, and the
+  brightness keys, All Screens and Match Light & Dark Mode leave them alone.
+  Set their brightness with their own buttons.
+
+### Added
+- **Dim in software**, in the screen options of a monitor without DDC/CI,
+  brings back the software brightness slider for that monitor.
+
 ## [2.1.1] - 2026-10-28
 
 ### Fixed
@@ -175,7 +188,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...v2.1.1
 [2.1.1-beta.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...v2.1.1-beta.1
 [2.1.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.3...v2.1.0

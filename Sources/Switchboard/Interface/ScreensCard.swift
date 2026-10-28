@@ -130,6 +130,12 @@ struct ScreenOptions: View {
                 get: { display.autoOff },
                 set: { controller.setAutoOff($0, for: display.id) }
             ))
+            if display.offMethod != .standby {
+                Toggle("Dim in Software", isOn: Binding(
+                    get: { display.softwareDimming },
+                    set: { controller.setSoftwareDimming($0, for: display.id) }
+                ))
+            }
             Button(display.showsSwitch ? "Hide Power Switch" : "Show Power Switch") {
                 controller.setSwitchVisible(!display.showsSwitch, for: display.id)
             }

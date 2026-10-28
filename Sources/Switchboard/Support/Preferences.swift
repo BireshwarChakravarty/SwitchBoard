@@ -18,6 +18,7 @@ enum Preferences {
     private static let offMethodAutomaticKey = "offMethodAutomatic"
     private static let switchVisibleKey = "switchVisible"
     private static let autoOffKey = "autoOffWhenLockedOrAsleep"
+    private static let softwareDimmingKey = "softwareDimming"
     static let disconnectedKey = "disconnectedDisplayIDs"
     private static let brightnessKeysKey = "brightnessKeysEnabled"
     private static let followAppearanceKey = "brightnessFollowsAppearance"
@@ -62,6 +63,16 @@ enum Preferences {
 
     static func setAutoOff(_ enabled: Bool, for monitor: String) {
         set(enabled, for: monitor, in: autoOffKey)
+    }
+
+    /// Dim a monitor without DDC/CI in software. Off by default: such a
+    /// monitor is power-only, and its brightness is set on the monitor.
+    static func softwareDimming(for monitor: String) -> Bool {
+        defaults.dictionary(forKey: softwareDimmingKey)?[monitor] as? Bool ?? false
+    }
+
+    static func setSoftwareDimming(_ enabled: Bool, for monitor: String) {
+        set(enabled, for: monitor, in: softwareDimmingKey)
     }
 
     /// macOS's permission prompts were shown once already; never again.
@@ -135,7 +146,8 @@ enum Preferences {
 
     /// Forget every setting (Reset to Defaults).
     static func resetAll() {
-        for key in [offMethodKey, offMethodAutomaticKey, switchVisibleKey, autoOffKey, disconnectedKey, brightnessKeysKey,
+        for key in [offMethodKey, offMethodAutomaticKey, switchVisibleKey, autoOffKey, softwareDimmingKey,
+                    disconnectedKey, brightnessKeysKey,
                     followAppearanceKey, appearanceBrightnessKey, factoryResetUnsupportedKey,
                     remoteEnabledKey, remoteKeyHashesKey] {
             defaults.removeObject(forKey: key)

@@ -18,6 +18,9 @@ struct ManagedDisplay: Identifiable, Hashable {
     var showsSwitch = true
     /// Switch off when the screen locks or the Mac sleeps, on at unlock/wake.
     var autoOff = false
+    /// A monitor without DDC/CI is dimmed in software only if the user turns
+    /// this on; otherwise Switchboard leaves its picture alone.
+    var softwareDimming = false
     /// Why the last attempt failed, shown under the name.
     var problem: String?
     /// "Mirrored to <screen>" / "Mirror of <screen>".
@@ -37,6 +40,11 @@ struct ManagedDisplay: Identifiable, Hashable {
 
     /// Only external monitors can be switched (DDC or disconnect).
     var canToggle: Bool { !isBuiltIn }
+
+    /// Switchboard only switches this screen on and off: it has no DDC/CI
+    /// controls and software dimming is off. Its brightness is set with the
+    /// monitor's own buttons.
+    var isPowerOnly: Bool { !isBuiltIn && offMethod != .standby && !softwareDimming }
 }
 
 /// Enumerates displays, switches them off/on, drives brightness/contrast/
@@ -252,8 +260,12 @@ final class DisplayController: ObservableObject {
         display.autoOff = Preferences.autoOff(for: key)
 
         if display.offMethod != .standby {
-            // No DDC/CI on this monitor: software dimming only.
-            display.combinedBrightness = combinedLevel(of: id, hardware: nil)
+            // No DDC/CI on this monitor: power only, unless the user chose
+            // to dim it in software.
+            display.softwareDimming = Preferences.softwareDimming(for: key)
+            if display.softwareDimming {
+                display.combinedBrightness = combinedLevel(of: id, hardware: nil)
+            }
         } else if let values = ddcValues[id] {
             display.brightness = values[VCP.brightness]
             display.contrast = values[VCP.contrast]
@@ -921,6 +933,14 @@ final class DisplayController: ObservableObject {
     func setOffMethod(_ method: OffMethod, for id: CGDirectDisplayID) {
         guard let key = identities[id]?.key else { return }
         Preferences.setOffMethod(method, for: key)
+        refresh()
+    }
+
+    func setSoftwareDimming(_ enabled: Bool, for id: CGDirectDisplayID) {
+        guard let key = identities[id]?.key else { return }
+        Preferences.setSoftwareDimming(enabled, for: key)
+        // Turning it off gives the screen its full picture back.
+        if !enabled { dimmer.setLevel(1, for: id) }
         refresh()
     }
 

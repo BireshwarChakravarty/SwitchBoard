@@ -37,7 +37,8 @@ third-party dependencies.
 - **Picture.** One brightness slider that drives the backlight and continues
   below its minimum with software dimming, plus contrast, monitor speaker
   volume and resolution. An All Screens slider, and a brightness for Light and
-  Dark mode each.
+  Dark mode each. Monitors without DDC/CI are left alone (power only), or
+  dimmed in software if you choose.
 - **Keyboard.** Brightness keys work on external displays, including Apple
   keyboards' F1 and F2, with an on-screen indicator. Volume keys control
   monitor speakers, which macOS can't adjust over HDMI or DisplayPort.
@@ -116,6 +117,7 @@ Open them with **⋯** on the selected screen, or by right-clicking a screen.
 | **Switch Off By** | **Standby** (the monitor sleeps, over DDC/CI) or **Disconnect** (macOS stops using the screen, as if unplugged). Switchboard switches to Disconnect by itself the first time a monitor doesn't answer DDC/CI. |
 | **Switch off while locked or asleep** | And back on when you unlock. |
 | **Hide power switch** | For a screen you never turn off. Its switch is also unavailable remotely. |
+| **Dim in software** | Monitors without DDC/CI only. Off by default: Switchboard then only switches the monitor on and off, and never touches its picture; set its brightness with its own buttons. Turn it on to get a brightness slider that darkens the picture in software. |
 
 ### Keyboard keys
 
@@ -173,7 +175,8 @@ log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"
 |---|---|
 | Keyboard keys do nothing | Check **Settings → Keyboard Keys** for a permission notice; it links to the right page. Quit other display utilities. |
 | *Not responding to DDC/CI* | Turn on DDC/CI in the monitor's menu, or try another cable, port or adapter. Monitors without DDC/CI are switched off by disconnecting. |
-| Only a software brightness slider | The monitor didn't answer DDC/CI reads. Look for `No reply reading VCP` in the log. |
+| No brightness slider for a monitor | It doesn't support DDC/CI, so Switchboard leaves its brightness to its own buttons. Turn on **Dim in software** in its options for a software slider. Look for `No reply reading VCP` in the log to confirm. |
+| A portable monitor's own brightness resets after it's switched off | Switching off cuts its video signal, and some portable monitors reset their brightness when they wake, especially when powered only over USB-C from the Mac. Give it its own power supply, or turn off any power-saving mode in its menu. |
 | A control affects the wrong monitor | Each DDC/CI lookup logs the candidate ports with their EDID match scores. [Open an issue](https://github.com/BireshwarChakravarty/SwitchBoard/issues/new/choose) with those lines. |
 | The iPhone can't reach the remote | Check the iPhone is on the same Wi-Fi and the Mac is awake. Try the numeric address shown in Settings, and allow incoming connections for Switchboard if the firewall asks. |
 | *Couldn't make shortcuts* | Sign in to iCloud on the Mac (System Settings → your name) and try again. |
