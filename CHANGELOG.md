@@ -6,7 +6,7 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
-## [2.3.0-beta.1] - 2026-10-28
+## [2.3.0] - 2026-10-28
 
 ### Changed
 - **Settings is now a window**, opened with the gear in the menu or ⌘, — a
@@ -212,8 +212,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.3.0-beta.1...HEAD
-[2.3.0-beta.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.1...v2.3.0-beta.1
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...v2.1.1
