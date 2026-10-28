@@ -62,7 +62,7 @@ struct ScreenControlsCard: View {
                 .foregroundStyle(.secondary)
         }
         if let level = display.combinedBrightness {
-            ControlBlock(title: display.brightness == nil ? "Brightness (Software)" : "Brightness (Combined)",
+            ControlBlock(title: "Brightness",
                          value: Self.percent(level)) {
                 PillSlider(value: level, symbol: "sun.max.fill") {
                     controller.setBrightness($0, for: display.id)
@@ -179,17 +179,17 @@ struct ScreenOptionsPanel: View {
                 .labelsHidden()
             }
 
-            SwitchRow(title: "Switch off while locked or asleep", isOn: Binding(
+            SwitchRow(title: "Switch Off While Locked or Asleep", isOn: Binding(
                 get: { display.autoOff },
                 set: { controller.setAutoOff($0, for: display.id) }
             ))
-            SwitchRow(title: "Hide power switch", isOn: Binding(
+            SwitchRow(title: "Hide Power Switch", isOn: Binding(
                 get: { controller.isSwitchHidden(display.id) },
                 set: { controller.setSwitchVisible(!$0, for: display.id) }
             ))
             if display.offMethod != .standby {
                 // No DDC/CI: offer software dimming, off by default.
-                SwitchRow(title: "Dim in software", isOn: Binding(
+                SwitchRow(title: "Dim in Software", isOn: Binding(
                     get: { display.softwareDimming },
                     set: { controller.setSoftwareDimming($0, for: display.id) }
                 ))

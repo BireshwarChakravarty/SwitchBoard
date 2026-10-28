@@ -6,6 +6,17 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-10-28
+
+### Changed
+- The brightness slider is labelled just **Brightness**. "Combined" described
+  how a monitor's backlight and software dimming work together, and next to a
+  mirrored screen it read as if the two screens were combined.
+- Consistent wording across the menu: options use Title Case everywhere,
+  **Switch Off By** offers **Standby** and **Disconnect** in both the ⋯ panel
+  and the right-click menu, and clearer descriptions for Keyboard Keys and
+  Reset to Defaults. The iPhone page says **Siri & Shortcuts**, like the menu.
+
 ## [2.2.0] - 2026-10-28
 
 ### Changed
@@ -188,7 +199,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...v2.1.1
 [2.1.1-beta.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...v2.1.1-beta.1

@@ -190,7 +190,7 @@ enum RemotePage {
         </section>
         <section class="card">
           <details id="shortcuts">
-            <summary>Shortcuts &amp; Siri</summary>
+            <summary>Siri &amp; Shortcuts</summary>
             <div class="help">
               Make a shortcut for any of these, then run it from Siri, the Home Screen or Control Center:
               <ol>

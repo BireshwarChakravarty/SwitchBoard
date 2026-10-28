@@ -27,7 +27,7 @@ struct SwitchRow: View {
     }
 }
 
-/// A titled control: "Brightness (Combined)   65%" above its slider.
+/// A titled control: "Brightness   65%" above its slider.
 struct ControlBlock<Content: View>: View {
     let title: String
     let value: String

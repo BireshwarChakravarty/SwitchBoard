@@ -107,7 +107,7 @@ struct StatusLine: View {
             parts.append(mirrorNote)
         }
         if display.isBuiltIn { parts.append("Built-in") }
-        if display.autoOff { parts.append("Off when locked") }
+        if display.autoOff { parts.append("Off while locked") }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }
@@ -123,8 +123,8 @@ struct ScreenOptions: View {
                 get: { display.offMethod },
                 set: { controller.setOffMethod($0, for: display.id) }
             )) {
-                Text("DDC/CI Standby").tag(OffMethod.standby)
-                Text("Disconnecting").tag(OffMethod.disconnect)
+                Text("Standby").tag(OffMethod.standby)
+                Text("Disconnect").tag(OffMethod.disconnect)
             }
             Toggle("Switch Off While Locked or Asleep", isOn: Binding(
                 get: { display.autoOff },

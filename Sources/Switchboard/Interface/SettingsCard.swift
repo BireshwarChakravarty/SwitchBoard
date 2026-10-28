@@ -30,7 +30,7 @@ struct SettingsCard: View {
                     OptionRow(
                         icon: "keyboard",
                         title: "Keyboard Keys",
-                        detail: "Brightness, and volume for monitor speakers",
+                        detail: "Brightness, and monitor speaker volume",
                         isOn: Binding(
                             get: { controller.brightnessKeysEnabled },
                             set: { controller.setBrightnessKeysEnabled($0) }
@@ -207,7 +207,7 @@ struct ResetRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(controller.confirmingReset ? "Reset Everything?" : "Reset to Defaults")
                     .font(.system(size: 13, weight: .medium))
-                Text("Settings, dimming, and contrast to 50%")
+                Text("Restores every screen and clears all settings")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
