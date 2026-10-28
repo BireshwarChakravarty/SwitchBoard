@@ -6,6 +6,23 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-10-28
+
+### Fixed
+- A portable display without DDC/CI that mirrors a DDC monitor was dimmed far
+  too much by the brightness keys and the All Screens slider: it got the
+  monitor's percentage as software dimming, which looks much darker than the
+  same percentage of backlight. It now stays at full brightness while the
+  monitor's backlight dims, and only dims below the backlight's minimum, in
+  step with the monitor. The keys also step from the monitor's level rather
+  than the portable display's.
+
+### Changed
+- Reverted the mirror change from 2.1.1-beta.1. The main monitor's blink came
+  from mismatched refresh rates (see Troubleshooting in the README), not from
+  how the screen is disconnected, and re-mirroring as a separate step added
+  an error to the log on every switch-on.
+
 ## [2.1.1-beta.1] - 2026-10-28
 
 ### Fixed
@@ -157,7 +174,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.1-beta.1...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...v2.1.1
 [2.1.1-beta.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...v2.1.1-beta.1
 [2.1.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.3...v2.1.0
 [2.0.3]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.2...v2.0.3

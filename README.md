@@ -177,6 +177,7 @@ log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"
 | A control affects the wrong monitor | Each DDC/CI lookup logs the candidate ports with their EDID match scores. [Open an issue](https://github.com/BireshwarChakravarty/SwitchBoard/issues/new/choose) with those lines. |
 | The iPhone can't reach the remote | Check the iPhone is on the same Wi-Fi and the Mac is awake. Try the numeric address shown in Settings, and allow incoming connections for Switchboard if the firewall asks. |
 | *Couldn't make shortcuts* | Sign in to iCloud on the Mac (System Settings → your name) and try again. |
+| The main monitor blinks when a mirroring screen switches off or on | The two screens probably run at different refresh rates, such as 144 Hz and 60 Hz. While mirroring, macOS switches the main monitor's refresh rate whenever the mirror changes, and the monitor re-syncs. Choose a refresh rate both screens support in System Settings → Displays. |
 | A screen stays off | Quit Switchboard and macOS reconnects it. Otherwise run `/Applications/Switchboard.app/Contents/MacOS/Switchboard --reset`, or log out and back in. |
 
 ## Privacy and security
