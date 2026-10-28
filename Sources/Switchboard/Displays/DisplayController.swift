@@ -488,17 +488,36 @@ final class DisplayController: ObservableObject {
         display.isOn && !display.isBuiltIn && display.combinedBrightness != nil
     }
 
+    /// A screen dimmed only in software that mirrors one with hardware
+    /// brightness, such as a portable display mirroring a DDC monitor.
+    private func isSoftwareMirror(_ display: ManagedDisplay) -> Bool {
+        display.brightness == nil && mirrorSet(of: display.id).contains {
+            $0.id != display.id && $0.brightness != nil && isAdjustable($0)
+        }
+    }
+
+    /// The level a screen gets when its mirror set, or All Screens, is set to
+    /// `level`: a software mirror of a hardware-dimmed screen only dims below
+    /// the backlight's minimum (see BrightnessCurve.softwareMirrorLevel).
+    private func matchedLevel(for display: ManagedDisplay, following level: Double) -> Double {
+        isSoftwareMirror(display) ? BrightnessCurve.softwareMirrorLevel(matching: level) : level
+    }
+
     /// The All Screens slider: the average combined brightness, shown when
-    /// two or more screens can be adjusted.
+    /// two or more screens can be adjusted. Software mirrors follow their
+    /// hardware screen, so they don't count towards the average.
     var allScreensBrightness: Double? {
-        let levels = displays.filter { isAdjustable($0) }.compactMap(\.combinedBrightness)
-        guard levels.count > 1 else { return nil }
+        let adjustable = displays.filter { isAdjustable($0) }
+        guard adjustable.count > 1 else { return nil }
+        let leading = adjustable.filter { !isSoftwareMirror($0) }
+        let levels = (leading.isEmpty ? adjustable : leading).compactMap(\.combinedBrightness)
+        guard !levels.isEmpty else { return nil }
         return levels.reduce(0, +) / Double(levels.count)
     }
 
     func setAllScreensBrightness(_ level: Double) {
         for display in displays where isAdjustable(display) {
-            setBrightness(level, for: display.id)
+            setBrightness(matchedLevel(for: display, following: level), for: display.id)
         }
     }
 
@@ -687,16 +706,18 @@ final class DisplayController: ObservableObject {
         return pointed.isEmpty ? displays.filter { isAdjustable($0) } : pointed
     }
 
-    /// One brightness-key press: step the combined level and bring every
-    /// target screen to it, so mirrored screens stay matched.
+    /// One brightness-key press: step the combined level of the leading
+    /// screen (one with hardware brightness, if any) and bring every target
+    /// to it, so mirrored screens stay matched.
     private func adjustBrightness(up: Bool, fine: Bool, on id: CGDirectDisplayID) {
         let targets = brightnessTargets(for: id)
-        guard let first = targets.first, let current = first.combinedBrightness else { return }
+        guard let lead = targets.first(where: { $0.brightness != nil }) ?? targets.first,
+              let current = lead.combinedBrightness else { return }
         let level = BrightnessCurve.step(current, up: up, fine: fine)
         for display in targets {
-            setBrightness(level, for: display.id)
+            setBrightness(matchedLevel(for: display, following: level), for: display.id)
         }
-        hud.show(symbol: level < 0.01 ? "sun.min" : "sun.max.fill", level: level, on: first.id)
+        hud.show(symbol: level < 0.01 ? "sun.min" : "sun.max.fill", level: level, on: lead.id)
         let names = targets.map(\.name).joined(separator: " + ")
         keysStatus = "\(Self.title(of: up ? .brightnessUp : .brightnessDown)) → \(names) · \(Int((level * 100).rounded()))%"
     }

@@ -59,4 +59,17 @@ final class BrightnessCurveTests: XCTestCase {
         XCTAssertEqual(BrightnessCurve.step(1, up: true, fine: false), 1, accuracy: 1e-9)
         XCTAssertEqual(BrightnessCurve.step(0, up: false, fine: false), 0, accuracy: 1e-9)
     }
+
+    /// A software mirror stays at full brightness while the DDC monitor's
+    /// backlight dims, then matches its software dimming exactly below it.
+    func testSoftwareMirrorFollowsOnlyBelowTheBacklight() {
+        for level in [1.0, 0.75, 0.5, BrightnessCurve.hardwareFloor] {
+            XCTAssertEqual(BrightnessCurve.softwareMirrorLevel(matching: level), 1, accuracy: 1e-9)
+        }
+        for level in [0.15, 0.1, 0.05, 0.0] {
+            let mirror = BrightnessCurve.softwareMirrorLevel(matching: level)
+            let monitorDimming = BrightnessCurve.split(level).software
+            XCTAssertEqual(BrightnessCurve.softwareLevel(forDimming: mirror), monitorDimming, accuracy: 1e-9)
+        }
+    }
 }

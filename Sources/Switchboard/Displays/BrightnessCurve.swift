@@ -39,6 +39,16 @@ enum BrightnessCurve {
         clamp((level - minimumSoftwareLevel) / (1 - minimumSoftwareLevel))
     }
 
+    /// The level for a software-only screen that mirrors a DDC monitor at
+    /// `level`. While the monitor's backlight does the dimming, the mirror
+    /// stays at full brightness (darkening its picture to match a backlight
+    /// looks far darker). Below the backlight's minimum, it gets the same
+    /// software dimming as the monitor, so the two stay matched.
+    static func softwareMirrorLevel(matching level: Double) -> Double {
+        let level = clamp(level)
+        return level >= hardwareFloor ? 1 : level / hardwareFloor
+    }
+
     /// One key press on the system's 16-step scale (64 steps when fine).
     static func step(_ level: Double, up: Bool, fine: Bool) -> Double {
         let steps = fine ? 64.0 : 16.0

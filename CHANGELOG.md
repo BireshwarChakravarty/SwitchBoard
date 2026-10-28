@@ -13,6 +13,13 @@ All notable changes to Switchboard are documented here. The format follows
   mirroring the main monitor, briefly blanked the main monitor while macOS
   rebuilt the mirror. The screen now leaves the mirror in the same step that
   switches it off, and rejoins it when switched back on.
+- A portable display without DDC/CI that mirrors a DDC monitor was dimmed far
+  too much by the brightness keys and the All Screens slider: it got the
+  monitor's percentage as software dimming, which looks much darker than the
+  same percentage of backlight. It now stays at full brightness while the
+  monitor's backlight dims, and only dims below the backlight's minimum, in
+  step with the monitor. The keys also step from the monitor's level rather
+  than the portable display's.
 
 ## [2.1.0] - 2026-10-17
 
