@@ -1,59 +1,72 @@
 import SwiftUI
 import AppKit
 
-/// The menu.
+/// The menu: every screen, the selected one opened with its controls, then
+/// Settings and Quit as menu items.
 struct MenuContent: View {
     @ObservedObject var controller: DisplayController
 
     var body: some View {
-        VStack(spacing: 10) {
-            GlassEffectContainer(spacing: 10) {
-                VStack(spacing: 10) {
-                    ScreensCard(controller: controller)
-                    if let display = controller.selectedDisplay {
-                        ScreenControlsCard(display: display, controller: controller)
-                    }
-                    if let level = controller.allScreensBrightness {
-                        AllScreensCard(level: level, controller: controller)
-                    }
-                    if controller.brightnessKeysNeedPermission || controller.inputMonitoringNeeded {
-                        PermissionBanner(controller: controller)
-                    }
+        VStack(alignment: .leading, spacing: 6) {
+            header
+            ScreenList(controller: controller)
+            if let level = controller.allScreensBrightness {
+                AllScreensCard(level: level, controller: controller)
+            }
+            if controller.brightnessKeysNeedPermission || controller.inputMonitoringNeeded {
+                PermissionBanner(controller: controller)
+            }
+            Divider()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 2)
+            VStack(spacing: 0) {
+                MenuRowButton(title: "Settings…", key: ",") {
+                    SettingsWindow.shared.show(controller: controller)
+                }
+                MenuRowButton(title: "Quit Switchboard", key: "q") {
+                    // Never leave a screen disconnected or dimmed behind us.
+                    controller.prepareToQuit()
+                    NSApplication.shared.terminate(nil)
                 }
             }
-            Footer(controller: controller)
         }
-        .padding(12)
+        .padding(8)
         .frame(width: Metrics.width)
+        .tint(Theme.signal)
         .onAppear { controller.refresh() }
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Screens")
+                .font(.system(size: 13, weight: .semibold))
+            Spacer()
+            if controller.displays.count > 1 {
+                Text("\(controller.displays.count) connected")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 6)
+        .padding(.bottom, 2)
     }
 }
 
-struct Footer: View {
+/// One brightness slider for every adjustable screen.
+struct AllScreensCard: View {
+    let level: Double
     @ObservedObject var controller: DisplayController
 
     var body: some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Switchboard")
-                    .font(.subheadline.weight(.semibold))
-                Text(controller.versionLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            CircleButton(icon: "gearshape", help: "Settings…") {
-                SettingsWindow.shared.show(controller: controller)
-            }
-            .keyboardShortcut(",")
-            CircleButton(icon: "power", help: "Quit Switchboard") {
-                // Never leave a screen disconnected or dimmed behind us.
-                controller.prepareToQuit()
-                NSApplication.shared.terminate(nil)
-            }
-            .keyboardShortcut("q")
+        ControlBlock(title: "All Screens", value: "\(Int((level * 100).rounded()))%") {
+            LevelSlider(value: level) { controller.setAllScreensBrightness($0) }
         }
-        .padding(.horizontal, 6)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous)
+                .fill(Theme.card)
+        )
     }
 }
 
@@ -68,17 +81,19 @@ struct PermissionBanner: View {
                 .foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Keyboard Keys Need Access")
-                    .font(.subheadline.weight(.medium))
+                    .font(.system(size: 12, weight: .medium))
                 Text("Open Settings to see what macOS needs.")
-                    .font(.caption)
+                    .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
-            Button("Settings…") { SettingsWindow.shared.show(controller: controller) }
-                .buttonStyle(.glass)
+            Button("Settings…") { SettingsWindow.shared.show(controller: controller, pane: .keyboard) }
                 .controlSize(.small)
         }
-        .padding(14)
-        .glassEffect(.regular, in: .rect(cornerRadius: Metrics.cardRadius))
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous)
+                .fill(Theme.card)
+        )
     }
 }

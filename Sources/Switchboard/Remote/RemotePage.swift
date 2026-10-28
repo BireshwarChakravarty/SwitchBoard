@@ -10,9 +10,9 @@ enum RemotePage {
       "short_name": "Switchboard",
       "start_url": "/",
       "display": "standalone",
-      "background_color": "#101014",
-      "theme_color": "#101014",
-      "icons": [{ "src": "/apple-touch-icon.png?v=3", "sizes": "180x180", "type": "image/png", "purpose": "any" }]
+      "background_color": "#121316",
+      "theme_color": "#121316",
+      "icons": [{ "src": "/apple-touch-icon.png?v=4", "sizes": "180x180", "type": "image/png", "purpose": "any" }]
     }
     """##
 
@@ -21,7 +21,7 @@ enum RemotePage {
     /// addresses on the local network). Without an icon, it links to the file.
     static func page(touchIcon: Data?) -> String {
         let source = touchIcon.flatMap { $0.isEmpty ? nil : "data:image/png;base64,\($0.base64EncodedString())" }
-            ?? "/apple-touch-icon.png?v=3"
+            ?? "/apple-touch-icon.png?v=4"
         return html.replacingOccurrences(of: touchIconPlaceholder, with: source)
     }
 
@@ -39,23 +39,24 @@ enum RemotePage {
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="color-scheme" content="light dark">
     <link rel="apple-touch-icon" sizes="180x180" href="{{TOUCH_ICON}}">
-    <link rel="icon" type="image/png" href="/apple-touch-icon.png?v=3">
+    <link rel="icon" type="image/png" href="/apple-touch-icon.png?v=4">
     <link rel="manifest" href="/manifest.webmanifest">
     <title>Switchboard</title>
     <style>
+    /* "Signal": plain greys, and one amber for what's on. */
     :root {
-      --bg-1: #e9eef7; --bg-2: #f6f1ea;
-      --card: rgba(255,255,255,.62); --card-edge: rgba(255,255,255,.75);
-      --row: rgba(0,0,0,.045); --text: #1c1c1e; --muted: #6b6b72;
-      --track: rgba(0,0,0,.14); --fill: #ffffff; --fill-edge: rgba(0,0,0,.1);
-      --accent: #0a84ff; --danger: #ff3b30; --warn: #ff9f0a;
+      --bg-1: #f2f1ee; --card: #ffffff; --card-edge: rgba(0,0,0,.06);
+      --row: rgba(0,0,0,.05); --text: #1c1d21; --muted: #6b6b72;
+      --track: rgba(0,0,0,.10); --fill: #f5a524; --fill-edge: rgba(0,0,0,.06);
+      --accent: #f5a524; --on-accent: #1c1d21; --link: #b36b00;
+      --danger: #d70015; --warn: #c26a00;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg-1: #0d0f16; --bg-2: #1a1420;
-        --card: rgba(44,44,52,.55); --card-edge: rgba(255,255,255,.09);
-        --row: rgba(255,255,255,.06); --text: #f5f5f7; --muted: #a1a1aa;
-        --track: rgba(255,255,255,.12); --fill: #f5f5f7; --fill-edge: rgba(255,255,255,.2);
+        --bg-1: #121316; --card: #1d1e22; --card-edge: rgba(255,255,255,.06);
+        --row: rgba(255,255,255,.06); --text: #f2f2f4; --muted: #a1a1a8;
+        --track: rgba(255,255,255,.10); --fill-edge: rgba(255,255,255,.08);
+        --link: #f5a524; --danger: #ff6961; --warn: #ffb340;
       }
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -65,14 +66,6 @@ enum RemotePage {
       font: 15px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
       -webkit-user-select: none; user-select: none;
     }
-    /* A fixed backdrop (iOS ignores background-attachment: fixed). */
-    body::before {
-      content: ""; position: fixed; inset: 0; z-index: -1;
-      background:
-        radial-gradient(120% 60% at 0% 0%, rgba(10,132,255,.18), transparent 60%),
-        radial-gradient(100% 60% at 100% 100%, rgba(191,90,242,.16), transparent 60%),
-        linear-gradient(160deg, var(--bg-1), var(--bg-2));
-    }
     main {
       max-width: 520px; margin: 0 auto;
       padding: calc(env(safe-area-inset-top) + 20px) 16px calc(env(safe-area-inset-bottom) + 28px);
@@ -81,19 +74,17 @@ enum RemotePage {
     h1 { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
     .sub { color: var(--muted); font-size: 14px; margin-top: 2px; }
     .card {
-      background: var(--card); border: 1px solid var(--card-edge); border-radius: 24px;
+      background: var(--card); border: 1px solid var(--card-edge); border-radius: 22px;
       padding: 8px; margin-bottom: 14px;
-      -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
-      box-shadow: 0 10px 30px rgba(0,0,0,.08);
     }
     .card > h2 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase;
       letter-spacing: .04em; margin: 8px 10px 6px; }
     .row { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 16px; }
     .row.selectable { cursor: pointer; }
     .row.selected { background: var(--row); }
-    .badge { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
-      background: var(--row); color: var(--muted); flex: none; }
-    .badge.on { background: var(--accent); color: #fff; }
+    .badge { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center;
+      background: var(--track); color: var(--muted); flex: none; }
+    .badge.on { background: var(--accent); color: var(--on-accent); }
     .badge svg { width: 19px; height: 19px; }
     .grow { flex: 1; min-width: 0; }
     .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -104,7 +95,7 @@ enum RemotePage {
       background: var(--track); position: relative; flex: none; transition: background .2s; margin: 0; }
     .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px;
       border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); transition: transform .2s; }
-    .switch:checked { background: #34c759; }
+    .switch:checked { background: var(--accent); }
     .switch:checked::after { transform: translateX(20px); }
     .switch:disabled { opacity: .5; }
 
@@ -112,7 +103,7 @@ enum RemotePage {
     .control .label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 8px; }
     .control .value { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
     input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; margin: 0;
-      border-radius: 22px; background: linear-gradient(to right, var(--fill) var(--p, 50%), var(--track) var(--p, 50%));
+      border-radius: 14px; background: linear-gradient(to right, var(--fill) var(--p, 50%), var(--track) var(--p, 50%));
       box-shadow: inset 0 0 0 1px var(--fill-edge); touch-action: pan-y; }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 0; height: 44px; }
     select { width: 100%; font: inherit; color: var(--text); background: var(--row); border: 0;
@@ -133,7 +124,7 @@ enum RemotePage {
 
     button { font: inherit; font-weight: 600; border: 0; border-radius: 999px; padding: 9px 16px;
       background: var(--row); color: var(--text); cursor: pointer; }
-    button.primary { background: var(--accent); color: #fff; }
+    button.primary { background: var(--accent); color: var(--on-accent); }
     button.small { padding: 6px 12px; font-size: 13px; flex: none; }
     button:disabled { opacity: .5; }
 
@@ -147,9 +138,9 @@ enum RemotePage {
 
     .action { padding: 4px 10px 12px; }
     .action a { display: block; text-align: center; text-decoration: none; font-weight: 600;
-      border-radius: 999px; padding: 11px 16px; background: var(--accent); color: #fff; }
+      border-radius: 999px; padding: 11px 16px; background: var(--accent); color: var(--on-accent); }
     footer { text-align: center; color: var(--muted); font-size: 13px; padding: 6px; }
-    footer button { background: none; color: var(--accent); padding: 6px; font-weight: 500; }
+    footer button { background: none; color: var(--link); padding: 6px; font-weight: 500; }
     #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px);
       transform: translate(-50%, 20px); opacity: 0; transition: all .25s; max-width: calc(100% - 32px);
       background: rgba(30,30,34,.92); color: #fff; padding: 10px 16px; border-radius: 14px; font-size: 14px;

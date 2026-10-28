@@ -1,6 +1,6 @@
 import AppKit
 
-/// The menu-bar icon: a monitor with an "on" switch on its screen. Drawn in
+/// The menu-bar icon: the app icon's monitor, its screen half lit. Drawn in
 /// code as a template image so macOS tints it like the system icons.
 enum MenuBarIcon {
     static func make() -> NSImage {
@@ -14,14 +14,11 @@ enum MenuBarIcon {
             screen.lineWidth = 1.5
             screen.stroke()
 
-            // The switch, with its knob punched out.
+            // The lit half of the screen.
             NSBezierPath(
-                roundedRect: NSRect(x: 5.6, y: 4.15, width: 8.8, height: 4.5),
-                xRadius: 2.25, yRadius: 2.25
+                roundedRect: NSRect(x: 3.5, y: 3, width: 6.5, height: 7),
+                xRadius: 0.8, yRadius: 0.8
             ).fill()
-            NSGraphicsContext.current?.compositingOperation = .clear
-            NSBezierPath(ovalIn: NSRect(x: 10.85, y: 4.85, width: 3.1, height: 3.1)).fill()
-            NSGraphicsContext.current?.compositingOperation = .sourceOver
 
             // Stand and base.
             NSBezierPath(rect: NSRect(x: 8.4, y: 11.75, width: 3.2, height: 2.2)).fill()

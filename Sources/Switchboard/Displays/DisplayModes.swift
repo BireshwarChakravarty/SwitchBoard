@@ -34,6 +34,12 @@ enum DisplayModes {
         return (modes, index)
     }
 
+    /// The screen's refresh rate in whole hertz, if macOS reports one.
+    static func refreshRate(of id: CGDirectDisplayID) -> Int? {
+        guard let rate = CGDisplayCopyDisplayMode(id)?.refreshRate, rate > 0 else { return nil }
+        return Int(rate.rounded())
+    }
+
     static func resolution(of mode: CGDisplayMode) -> Resolution {
         Resolution(width: mode.width, height: mode.height, isHiDPI: mode.pixelWidth > mode.width)
     }

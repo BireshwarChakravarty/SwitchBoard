@@ -1,94 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Switchboard's icon: a monitor whose screen is half on (Signal amber)
+       and half off. The tile follows the macOS icon grid: 824 pt, 100 pt in. -->
   <defs>
-    <linearGradient id="bg" x1="0.15" y1="0" x2="0.85" y2="1">
-      <stop offset="0" stop-color="#3D7BFF"/>
-      <stop offset="0.55" stop-color="#4A3FE0"/>
-      <stop offset="1" stop-color="#2A1C8F"/>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F7F6F2"/>
+      <stop offset="1" stop-color="#E4E2DC"/>
     </linearGradient>
-    <radialGradient id="bgLight" cx="0.28" cy="0.18" r="0.75">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.38"/>
-      <stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="tileRim" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.75"/>
-      <stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0.08"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.35"/>
+    <linearGradient id="on" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFB847"/>
+      <stop offset="1" stop-color="#F09A14"/>
     </linearGradient>
-    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.50"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.16"/>
+    <linearGradient id="off" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3B3C43"/>
+      <stop offset="1" stop-color="#2C2D33"/>
     </linearGradient>
-    <linearGradient id="glassRim" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>
-      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.25"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.6"/>
-    </linearGradient>
-    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0B1030" stop-opacity="0.78"/>
-      <stop offset="1" stop-color="#1A1460" stop-opacity="0.70"/>
-    </linearGradient>
-    <linearGradient id="mint" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#9BFFE0"/>
-      <stop offset="1" stop-color="#2FD6A6"/>
-    </linearGradient>
-    <radialGradient id="knob" cx="0.38" cy="0.3" r="0.8">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#DCE3F5"/>
-    </radialGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#5CF2C4" stop-opacity="0.45"/>
-      <stop offset="1" stop-color="#5CF2C4" stop-opacity="0"/>
-    </radialGradient>
     <filter id="tileShadow" x="-10%" y="-10%" width="120%" height="125%">
-      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.32"/>
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.28"/>
     </filter>
-    <filter id="lift" x="-20%" y="-20%" width="140%" height="160%">
-      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#0A0640" flood-opacity="0.45"/>
+    <filter id="lift" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#2A2416" flood-opacity="0.22"/>
     </filter>
-    <filter id="soft" x="-20%" y="-50%" width="140%" height="200%">
-      <feGaussianBlur stdDeviation="10"/>
-    </filter>
-    <filter id="knobShadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/>
-    </filter>
-    <clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
-    <clipPath id="body"><rect x="222" y="262" width="580" height="404" rx="56"/></clipPath>
+    <clipPath id="screen"><rect x="280" y="312" width="464" height="308" rx="18"/></clipPath>
   </defs>
 
-  <!-- tile -->
   <g filter="url(#tileShadow)">
-    <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+    <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/>
   </g>
-  <g clip-path="url(#tile)">
-    <rect x="100" y="100" width="824" height="824" fill="url(#bgLight)"/>
-    <!-- soft coloured blobs behind the glass, so the glass has something to refract -->
-    <circle cx="300" cy="760" r="210" fill="#9B5CFF" opacity="0.45" filter="url(#soft)"/>
-    <circle cx="760" cy="300" r="170" fill="#36C6FF" opacity="0.40" filter="url(#soft)"/>
-  </g>
-  <rect x="102" y="102" width="820" height="820" rx="183" fill="none" stroke="url(#tileRim)" stroke-width="4"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="3"/>
 
-  <!-- glass monitor -->
   <g filter="url(#lift)">
-    <!-- stand -->
-    <path d="M466 662 h92 l20 78 h-132 z" fill="url(#glass)" stroke="url(#glassRim)" stroke-width="4"/>
-    <rect x="388" y="736" width="248" height="34" rx="17" fill="url(#glass)" stroke="url(#glassRim)" stroke-width="4"/>
-    <!-- body -->
-    <rect x="222" y="262" width="580" height="404" rx="56" fill="url(#glass)"/>
+    <rect x="478" y="652" width="68" height="72" fill="#1C1D21"/>
+    <rect x="372" y="712" width="280" height="40" rx="20" fill="#1C1D21"/>
+    <rect x="240" y="272" width="544" height="388" rx="50" fill="#1C1D21"/>
   </g>
-  <g clip-path="url(#body)">
-    <!-- specular sweep across the top of the glass -->
-    <ellipse cx="420" cy="250" rx="420" ry="90" fill="#FFFFFF" opacity="0.35" filter="url(#soft)"/>
+  <g clip-path="url(#screen)">
+    <rect x="280" y="312" width="232" height="308" fill="url(#on)"/>
+    <rect x="512" y="312" width="232" height="308" fill="url(#off)"/>
+    <rect x="280" y="312" width="232" height="4" fill="#FFFFFF" opacity="0.35"/>
   </g>
-  <rect x="222" y="262" width="580" height="404" rx="56" fill="none" stroke="url(#glassRim)" stroke-width="6"/>
-  <!-- screen -->
-  <rect x="258" y="298" width="508" height="332" rx="26" fill="url(#screen)" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="3"/>
-
-  <!-- switch and fader on the screen -->
-  <circle cx="512" cy="462" r="170" fill="url(#glow)"/>
-  <rect x="404" y="356" width="216" height="102" rx="51" fill="url(#mint)"/>
-  <rect x="418" y="364" width="188" height="36" rx="18" fill="#FFFFFF" opacity="0.30"/>
-  <circle cx="569" cy="407" r="39" fill="url(#knob)" filter="url(#knobShadow)"/>
-  <rect x="354" y="532" width="316" height="18" rx="9" fill="#FFFFFF" opacity="0.22"/>
-  <rect x="354" y="532" width="196" height="18" rx="9" fill="url(#mint)"/>
-  <circle cx="550" cy="541" r="29" fill="url(#knob)" filter="url(#knobShadow)"/>
 </svg>

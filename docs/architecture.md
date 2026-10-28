@@ -11,11 +11,11 @@ Sources/Switchboard/
 ├── App/
 │   └── SwitchboardApp.swift      Entry point, menu-bar scene, --reset
 ├── Interface/
-│   ├── MenuContent.swift         The menu's layout and footer
-│   ├── ScreensCard.swift         Screen list, status lines, right-click options
-│   ├── ScreenControlsCard.swift  Selected screen's sliders and options panel
-│   ├── SettingsWindow.swift      Settings window: options, iPhone Remote, reset
-│   ├── Components.swift          Metrics and shared controls (PillSlider, badges…)
+│   ├── MenuContent.swift         The menu's layout, All Screens, menu items
+│   ├── ScreenList.swift          Screen list, status lines, right-click options
+│   ├── ScreenControls.swift      Selected screen's sliders, resolution, options
+│   ├── SettingsWindow.swift      Settings window: sidebar and its four panes
+│   ├── Components.swift          Theme, Metrics and shared controls (LevelSlider…)
 │   ├── LevelHUD.swift            On-screen brightness and volume indicator
 │   └── MenuBarIcon.swift         Menu-bar icon, drawn in code
 ├── Displays/
@@ -42,6 +42,7 @@ Sources/Switchboard/
 │   ├── RemotePairing.swift       Pairing codes and hashed keys
 │   ├── RemoteShortcuts.swift     Siri shortcut files, signed with `shortcuts sign`
 │   ├── RemoteWebClip.swift       Home Screen web clip profile (.mobileconfig)
+│   ├── QRCode.swift              QR code for the address, shown in Settings
 │   └── RemotePage.swift          The iPhone web page (self-contained HTML)
 └── Support/
     ├── Preferences.swift         UserDefaults-backed settings

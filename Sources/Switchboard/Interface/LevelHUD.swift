@@ -2,8 +2,9 @@ import AppKit
 import SwiftUI
 
 /// The on-screen indicator shown when a brightness or volume key is pressed:
-/// a Liquid Glass capsule with a symbol and a level bar, top right of the
-/// screen, fading out shortly after the last press, like the system's own.
+/// a Liquid Glass capsule with a symbol, a Signal-amber level bar and the
+/// level, top right of the screen, fading out shortly after the last press,
+/// like the system's own.
 @MainActor
 final class LevelHUD {
     private let model = HUDModel()
@@ -93,13 +94,18 @@ private struct HUDView: View {
                 .frame(width: 22)
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.quaternary)
+                    Capsule().fill(Theme.track)
                     Capsule()
-                        .fill(.primary)
+                        .fill(Theme.signal)
                         .frame(width: max(0, geometry.size.width * model.level))
                 }
             }
             .frame(height: 6)
+            Text("\(Int((model.level * 100).rounded()))")
+                .font(.system(size: 12, weight: .medium).monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 26, alignment: .trailing)
+                .contentTransition(.numericText())
         }
         .padding(.horizontal, 18)
         .frame(width: 240, height: 52)

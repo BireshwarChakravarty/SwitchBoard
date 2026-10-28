@@ -34,7 +34,7 @@ final class RemoteWebClipTests: XCTestCase {
 
     func testPageLinksTheIconWhenThereIsNone() {
         let page = RemotePage.page(touchIcon: nil)
-        XCTAssertTrue(page.contains(#"<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3">"#))
+        XCTAssertTrue(page.contains(#"<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4">"#))
         XCTAssertFalse(page.contains(RemotePage.touchIconPlaceholder))
     }
 }

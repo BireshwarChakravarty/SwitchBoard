@@ -6,6 +6,26 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-28
+
+A redesign. Everything works as before, and settings carry over.
+
+### Changed
+- **New look, "Signal":** the system's own colours and materials, with one
+  warm amber for whatever is on, like a power light: switches, slider fills,
+  and the tile of each screen that's on.
+- **New app icon and menu-bar icon:** a monitor whose screen is half lit.
+- **The menu** is a list of screens. Click one to open it into a card with
+  its controls: slim sliders for Brightness, Contrast and Volume, Resolution
+  as **−** and **+**, **Switch off by**, and **More Options**. Each screen's
+  status shows its resolution and refresh rate. **Settings…** and **Quit
+  Switchboard** are menu items at the bottom.
+- **Settings** has a sidebar with General, Keyboard, iPhone Remote and About
+  panes. iPhone Remote shows a **QR code** for the address, so the iPhone's
+  camera can open it.
+- The brightness and volume indicator shows the level as a number too.
+- The iPhone remote matches the new look.
+
 ## [2.3.0] - 2026-10-28
 
 ### Changed
@@ -212,7 +232,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.3.0...v3.0.0
 [2.3.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.1...v2.2.0

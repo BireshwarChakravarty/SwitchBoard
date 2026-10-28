@@ -28,17 +28,18 @@ struct SwitchboardApp: App {
 
 // Design notes
 //
-// - Layout follows Control Center and BetterDisplay: a list of screens, then
-//   the selected screen's controls as large titled sliders, then a footer
-//   with Settings and Quit. Settings is a separate window, a grouped form like
-//   System Settings, so the menu stays about screens.
-// - Liquid Glass is used for the control layer only: each group is one glass
-//   card. Hierarchy comes from grouping and type, not decoration.
-// - Spacing is on a 4-point grid; corner radii are concentric (card 20,
-//   content inset 6, inner highlight 14).
-// - Colour is reserved for state: the accent fills an active badge, orange
-//   marks a problem, everything else is the system's label colours, so it
-//   reads correctly in Light and Dark mode.
+// - "Signal": the menu is a list of screens; the selected one opens into a
+//   card with its controls, and Settings and Quit sit below as menu items.
+//   Settings is a separate window with a sidebar, like System Settings, so
+//   the menu stays about screens.
+// - The menu window's own material is the only glass; cards are a faint
+//   fill. Hierarchy comes from grouping and type, not decoration.
+// - Colour is reserved for state: Signal amber (Theme.signal) marks what's
+//   on (switches, lit screen tiles, slider fills), orange marks a problem,
+//   and everything else uses the system's label colours, so it reads
+//   correctly in Light and Dark mode.
+// - The app icon, the menu-bar icon and the iPhone remote share one motif:
+//   a monitor whose screen is half lit.
 // - No @State anywhere: on recent SDKs SwiftUI's @State is a macro whose
 //   plugin ships only with full Xcode, so it fails to build with just the
 //   Command Line Tools. All view state lives in DisplayController.

@@ -25,8 +25,9 @@ supported". Switchboard talks to monitors directly over **DDC/CI**, the
 control channel built into DisplayPort, HDMI and USB-C, and falls back to
 software where a monitor doesn't support it.
 
-It's a native SwiftUI app with the macOS 26 Liquid Glass design, with no
-third-party dependencies.
+It's a native SwiftUI app for macOS 26, with no third-party dependencies.
+Its look, *Signal*, keeps to the system's own colours and adds one warm
+amber for whatever is on, like a power light.
 
 ## Features
 
@@ -103,26 +104,25 @@ Security. The keys start working within seconds, without a relaunch.
 
 | Section | What it does |
 |---|---|
-| **Screens** | Every connected screen, its status (*Mirrored to …*, *Disconnected*) and a power switch. Click a screen to show its controls. The last screen that's on has no switch. |
-| **Selected screen** | Brightness, Contrast, Volume and Resolution. **⋯** shows the screen's options. |
-| **Brightness · All Screens** | One slider for every screen, when two or more can be adjusted. |
-| **Footer** | The version, **Settings** (<kbd>⌘</kbd><kbd>,</kbd>) and **Quit** (<kbd>⌘</kbd><kbd>Q</kbd>). |
+| **Screens** | Every connected screen, its status (*2560 × 1440 · 160 Hz*, *Mirror of …*, *Standby*) and a power switch. The last screen that's on has no switch. |
+| **Selected screen** | Click a screen to open it: Brightness, Contrast, Volume, Resolution (**−** for larger text, **+** for more space), **Switch off by**, and **More Options**. |
+| **All Screens** | One brightness slider for every screen, when two or more can be adjusted. |
+| **Settings…** and **Quit Switchboard** | <kbd>⌘</kbd><kbd>,</kbd> and <kbd>⌘</kbd><kbd>Q</kbd>. |
 
 ### Settings
 
-Click the gear in the menu, or press <kbd>⌘</kbd><kbd>,</kbd> while it's open.
+Choose **Settings…** in the menu, or press <kbd>⌘</kbd><kbd>,</kbd> while it's open.
 
-| Setting | Description |
+| Pane | Settings |
 |---|---|
-| **Start at Login** | On by default. |
-| **Keyboard Keys** | Brightness and volume keys for external screens (see below). If macOS hasn't granted the access they need, Settings says which and links to it, and the menu shows a notice. |
-| **Match Light & Dark Mode** | Remembers one brightness for Light Mode and another for Dark Mode, and switches with the appearance. |
+| **General** | **Start at Login** (on by default), **Match Light & Dark Mode** (one brightness for Light Mode and another for Dark Mode) and **Reset to Defaults** (see below). |
+| **Keyboard** | **Keyboard Keys**: brightness and volume keys for external screens (see below). If macOS hasn't granted the access they need, this pane says which and links to it, and the menu shows a notice. |
 | **iPhone Remote** | Control screens from an iPhone (see below). |
-| **Reset to Defaults** | Switches every screen back on and clears all settings (see below). |
+| **About** | The version, and a link to this page. |
 
 ### Screen options
 
-Open them with **⋯** on the selected screen, or by right-clicking a screen.
+Open them under **More Options** on the selected screen, or by right-clicking a screen.
 
 | Option | Description |
 |---|---|
@@ -146,15 +146,16 @@ alongside Switchboard's.
 
 ### iPhone remote and Siri
 
-1. On the Mac, turn on **Settings → Allow iPhone Remote**. It shows an
-   address such as `http://Mac-mini.local:8723` and a six-digit pairing code.
-2. On an iPhone on the same Wi-Fi, open the address in Safari and enter the
-   code.
+1. On the Mac, turn on **Settings → iPhone Remote → Allow iPhone Remote**.
+   It shows a QR code, an address such as `http://Mac-mini.local:8723`, and a
+   six-digit pairing code.
+2. On an iPhone on the same Wi-Fi, scan the QR code with the camera (or open
+   the address in Safari) and enter the code.
 3. Choose **Share → Add to Home Screen** to use it like an app. If the icon
    shows as a letter, open **Home Screen Icon** at the bottom of the page and
    install the profile instead; it adds the same web app with the icon.
 
-For Siri, click **Add Shortcuts…** in Settings, under iPhone Remote. Switchboard builds
+For Siri, click **Add Shortcuts…** in **Settings → iPhone Remote**. Switchboard builds
 "*Screen* On", "*Screen* Off" and "Toggle *Screen*" for each screen with a
 power switch, plus "Screen Brightness", signs them, and opens them in the
 Shortcuts app. Add each one; iCloud syncs them to your iPhone, where they also
@@ -168,7 +169,7 @@ build your own shortcuts or integrations, see the
 
 ### Reset to Defaults
 
-**Settings → Reset…** reconnects every screen, wakes monitors from
+**Settings → General → Reset…** reconnects every screen, wakes monitors from
 standby, removes software dimming, sets each DDC/CI monitor's contrast to 50%
 (the usual factory value), turns the remote off and forgets all settings.
 DDC/CI's own factory-reset commands are optional and most monitors ignore
@@ -185,7 +186,7 @@ log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"
 
 | Problem | What to do |
 |---|---|
-| Keyboard keys do nothing | Open **Settings**: a missing permission shows under Keyboard Keys, with a button to the right page. Quit other display utilities. |
+| Keyboard keys do nothing | Open **Settings → Keyboard**: a missing permission shows under Keyboard Keys, with a button to the right page. Quit other display utilities. |
 | *Not responding to DDC/CI* | Turn on DDC/CI in the monitor's menu, or try another cable, port or adapter. Monitors without DDC/CI are switched off by disconnecting. |
 | No brightness slider for a monitor | It doesn't support DDC/CI, so Switchboard leaves its brightness to its own buttons. Turn on **Dim in Software** in its options for a software slider. Look for `No reply reading VCP` in the log to confirm. |
 | A portable monitor's own brightness resets after it's switched off | Switching off cuts its video signal, and some portable monitors reset their brightness when they wake, especially when powered only over USB-C from the Mac. Give it its own power supply, or turn off any power-saving mode in its menu. |

@@ -1,8 +1,9 @@
 import SwiftUI
 import AppKit
 
-/// Every screen: badge, name, status and power switch. Click to select.
-struct ScreensCard: View {
+/// Every screen. The selected one opens into a card with its controls; click
+/// another screen to switch.
+struct ScreenList: View {
     @ObservedObject var controller: DisplayController
 
     var body: some View {
@@ -16,37 +17,45 @@ struct ScreensCard: View {
                 .padding(.vertical, 8)
             } else {
                 ForEach(controller.displays) { display in
-                    ScreenRow(
-                        display: display,
-                        isSelected: display.id == controller.selectedDisplay?.id,
-                        controller: controller
+                    let isSelected = display.id == controller.selectedDisplay?.id
+                    VStack(alignment: .leading, spacing: 14) {
+                        ScreenRow(display: display, controller: controller)
+                        if isSelected {
+                            ScreenControls(display: display, controller: controller)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous)
+                            .fill(isSelected ? Theme.card : Color.clear)
                     )
                 }
             }
         }
-        .padding(Metrics.cardInset)
-        .glassEffect(.regular, in: .rect(cornerRadius: Metrics.cardRadius))
+        .animation(.snappy(duration: 0.25), value: controller.selectedDisplay?.id)
     }
 }
 
+/// A screen's tile, name, status and power switch. Click to select;
+/// right-click for its options.
 struct ScreenRow: View {
     let display: ManagedDisplay
-    let isSelected: Bool
     @ObservedObject var controller: DisplayController
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(
+            ScreenTile(
                 symbol: display.isBuiltIn ? "laptopcomputer" : "display",
-                isActive: display.isOn
+                isOn: display.isOn
             )
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(display.name)
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
                     if display.isMain {
-                        Tag(text: "Main", help: "Main display (has the menu bar)")
+                        Tag(text: "MAIN", help: "Main display (has the menu bar)")
                     }
                 }
                 StatusLine(display: display)
@@ -62,22 +71,16 @@ struct ScreenRow: View {
                 .controlSize(.small)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 7)
-        .background(
-            RoundedRectangle(cornerRadius: Metrics.rowRadius, style: .continuous)
-                .fill(isSelected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
-        )
-        .contentShape(RoundedRectangle(cornerRadius: Metrics.rowRadius, style: .continuous))
+        .contentShape(Rectangle())
         .onTapGesture { controller.select(display.id) }
         .contextMenu { ScreenOptions(display: display, controller: controller) }
-        .animation(.snappy(duration: 0.2), value: isSelected)
         .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+        .accessibilityAddTraits(.isButton)
     }
 }
 
-/// "Mirrored to …", "Standby", or a problem in orange.
+/// What a screen is doing, under its name: "2560 × 1440 · 160 Hz",
+/// "Mirror of …", "Standby", or a problem in orange.
 struct StatusLine: View {
     let display: ManagedDisplay
 
@@ -85,34 +88,37 @@ struct StatusLine: View {
         if let problem = display.problem {
             Label(problem, systemImage: "exclamationmark.triangle.fill")
                 .labelStyle(.titleAndIcon)
-                .font(.caption)
+                .font(.system(size: 11.5))
                 .foregroundStyle(.orange)
                 .lineLimit(1)
-        } else if let text {
+        } else {
             Text(text)
-                .font(.caption)
+                .font(.system(size: 11.5))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
     }
 
-    private var text: String? {
+    private var text: String {
         var parts: [String] = []
         if !display.isOn {
-            switch display.offMethod {
-            case .standby: parts.append("Standby")
-            case .disconnect: parts.append("Disconnected")
+            parts.append(display.offMethod == .standby ? "Standby" : "Disconnected")
+        } else if let mirror = display.mirrorNote, mirror.hasPrefix("Mirror of") {
+            parts.append(mirror)
+        } else {
+            if display.isBuiltIn { parts.append("Built-in") }
+            if let index = display.resolutionIndex, display.resolutions.indices.contains(index) {
+                parts.append(display.resolutions[index].label)
             }
-        } else if let mirrorNote = display.mirrorNote {
-            parts.append(mirrorNote)
+            if let rate = DisplayModes.refreshRate(of: display.id) { parts.append("\(rate) Hz") }
         }
-        if display.isBuiltIn { parts.append("Built-in") }
+        if display.isOn && display.isPowerOnly { parts.append("On and off only") }
         if display.autoOff { parts.append("Off while locked") }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        return parts.isEmpty ? "On" : parts.joined(separator: " · ")
     }
 }
 
-/// Per-screen options, from the ⋯ button or a right-click.
+/// Per-screen options, from a right-click.
 struct ScreenOptions: View {
     let display: ManagedDisplay
     @ObservedObject var controller: DisplayController
