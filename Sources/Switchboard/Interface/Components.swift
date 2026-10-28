@@ -121,57 +121,6 @@ struct PillSlider: View {
     }
 }
 
-/// "Needs … access" with a button to the right Privacy & Security page.
-struct PermissionNotice: View {
-    let text: String
-    let openSettings: () -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-            Text(text)
-                .font(.caption)
-            Spacer()
-            Button("Open Settings", action: openSettings)
-                .buttonStyle(.glass)
-                .controlSize(.small)
-        }
-        .padding(.leading, 8 + Metrics.badge + 12)
-        .padding(.trailing, 8)
-        .padding(.bottom, 6)
-    }
-}
-
-/// An option: badge, title and detail, and a switch.
-struct OptionRow: View {
-    let icon: String
-    let title: String
-    let detail: String?
-    let isOn: Binding<Bool>
-
-    var body: some View {
-        HStack(spacing: 12) {
-            IconBadge(symbol: icon, isActive: isOn.wrappedValue)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.system(size: 13, weight: .medium))
-                if let detail {
-                    Text(detail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 8)
-            Toggle(title, isOn: isOn)
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.small)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 7)
-    }
-}
-
 /// A round glass icon button.
 struct CircleButton: View {
     let icon: String

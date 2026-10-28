@@ -29,8 +29,9 @@ struct SwitchboardApp: App {
 // Design notes
 //
 // - Layout follows Control Center and BetterDisplay: a list of screens, then
-//   the selected screen's controls as large titled sliders, then a collapsible
-//   Settings section, then a footer.
+//   the selected screen's controls as large titled sliders, then a footer
+//   with Settings and Quit. Settings is a separate window, a grouped form like
+//   System Settings, so the menu stays about screens.
 // - Liquid Glass is used for the control layer only: each group is one glass
 //   card. Hierarchy comes from grouping and type, not decoration.
 // - Spacing is on a 4-point grid; corner radii are concentric (card 20,

@@ -106,7 +106,19 @@ Security. The keys start working within seconds, without a relaunch.
 | **Screens** | Every connected screen, its status (*Mirrored to …*, *Disconnected*) and a power switch. Click a screen to show its controls. The last screen that's on has no switch. |
 | **Selected screen** | Brightness, Contrast, Volume and Resolution. **⋯** shows the screen's options. |
 | **Brightness · All Screens** | One slider for every screen, when two or more can be adjusted. |
-| **Settings** | Keyboard Keys, Match Light & Dark Mode, Start at Login, iPhone Remote, and Reset to Defaults. |
+| **Footer** | The version, **Settings** (<kbd>⌘</kbd><kbd>,</kbd>) and **Quit** (<kbd>⌘</kbd><kbd>Q</kbd>). |
+
+### Settings
+
+Click the gear in the menu, or press <kbd>⌘</kbd><kbd>,</kbd> while it's open.
+
+| Setting | Description |
+|---|---|
+| **Start at Login** | On by default. |
+| **Keyboard Keys** | Brightness and volume keys for external screens (see below). If macOS hasn't granted the access they need, Settings says which and links to it, and the menu shows a notice. |
+| **Match Light & Dark Mode** | Remembers one brightness for Light Mode and another for Dark Mode, and switches with the appearance. |
+| **iPhone Remote** | Control screens from an iPhone (see below). |
+| **Reset to Defaults** | Switches every screen back on and clears all settings (see below). |
 
 ### Screen options
 
@@ -134,15 +146,15 @@ alongside Switchboard's.
 
 ### iPhone remote and Siri
 
-1. On the Mac, turn on **Settings → iPhone Remote**. It shows an address such
-   as `http://Mac-mini.local:8723` and a six-digit pairing code.
+1. On the Mac, turn on **Settings → Allow iPhone Remote**. It shows an
+   address such as `http://Mac-mini.local:8723` and a six-digit pairing code.
 2. On an iPhone on the same Wi-Fi, open the address in Safari and enter the
    code.
 3. Choose **Share → Add to Home Screen** to use it like an app. If the icon
    shows as a letter, open **Home Screen Icon** at the bottom of the page and
    install the profile instead; it adds the same web app with the icon.
 
-For Siri, click **Add Shortcuts…** under iPhone Remote. Switchboard builds
+For Siri, click **Add Shortcuts…** in Settings, under iPhone Remote. Switchboard builds
 "*Screen* On", "*Screen* Off" and "Toggle *Screen*" for each screen with a
 power switch, plus "Screen Brightness", signs them, and opens them in the
 Shortcuts app. Add each one; iCloud syncs them to your iPhone, where they also
@@ -156,7 +168,7 @@ build your own shortcuts or integrations, see the
 
 ### Reset to Defaults
 
-**Settings → Reset to Defaults** reconnects every screen, wakes monitors from
+**Settings → Reset…** reconnects every screen, wakes monitors from
 standby, removes software dimming, sets each DDC/CI monitor's contrast to 50%
 (the usual factory value), turns the remote off and forgets all settings.
 DDC/CI's own factory-reset commands are optional and most monitors ignore
@@ -173,12 +185,12 @@ log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"
 
 | Problem | What to do |
 |---|---|
-| Keyboard keys do nothing | Check **Settings → Keyboard Keys** for a permission notice; it links to the right page. Quit other display utilities. |
+| Keyboard keys do nothing | Open **Settings**: a missing permission shows under Keyboard Keys, with a button to the right page. Quit other display utilities. |
 | *Not responding to DDC/CI* | Turn on DDC/CI in the monitor's menu, or try another cable, port or adapter. Monitors without DDC/CI are switched off by disconnecting. |
 | No brightness slider for a monitor | It doesn't support DDC/CI, so Switchboard leaves its brightness to its own buttons. Turn on **Dim in Software** in its options for a software slider. Look for `No reply reading VCP` in the log to confirm. |
 | A portable monitor's own brightness resets after it's switched off | Switching off cuts its video signal, and some portable monitors reset their brightness when they wake, especially when powered only over USB-C from the Mac. Give it its own power supply, or turn off any power-saving mode in its menu. |
 | A control affects the wrong monitor | Each DDC/CI lookup logs the candidate ports with their EDID match scores. [Open an issue](https://github.com/BireshwarChakravarty/SwitchBoard/issues/new/choose) with those lines. |
-| The iPhone can't reach the remote | Check the iPhone is on the same Wi-Fi and the Mac is awake. Try the numeric address shown in Settings, and allow incoming connections for Switchboard if the firewall asks. |
+| The iPhone can't reach the remote | Check the iPhone is on the same Wi-Fi and the Mac is awake. Try the IP address shown in Settings, and allow incoming connections for Switchboard if the firewall asks. |
 | *Couldn't make shortcuts* | Sign in to iCloud on the Mac (System Settings → your name) and try again. |
 | The main monitor blinks when a mirroring screen switches off or on | macOS is probably changing the main monitor's refresh rate as the mirror changes, which makes the monitor re-sync. Set the main monitor to its native refresh rate in System Settings → Displays. For example, a 160 Hz monitor mirrored to a 144 Hz portable display blinked at 120 Hz but not at 160 Hz. |
 | A screen stays off | Quit Switchboard and macOS reconnects it. Otherwise run `/Applications/Switchboard.app/Contents/MacOS/Switchboard --reset`, or log out and back in. |

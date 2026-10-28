@@ -14,7 +14,7 @@ Sources/Switchboard/
 │   ├── MenuContent.swift         The menu's layout and footer
 │   ├── ScreensCard.swift         Screen list, status lines, right-click options
 │   ├── ScreenControlsCard.swift  Selected screen's sliders and options panel
-│   ├── SettingsCard.swift        Settings, iPhone Remote, Reset to Defaults
+│   ├── SettingsWindow.swift      Settings window: options, iPhone Remote, reset
 │   ├── Components.swift          Metrics and shared controls (PillSlider, badges…)
 │   ├── LevelHUD.swift            On-screen brightness and volume indicator
 │   └── MenuBarIcon.swift         Menu-bar icon, drawn in code

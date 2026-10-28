@@ -6,6 +6,19 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.3.0-beta.1] - 2026-10-28
+
+### Changed
+- **Settings is now a window**, opened with the gear in the menu or ⌘, — a
+  grouped form like System Settings, instead of a section squeezed into the
+  bottom of the menu. Descriptions are no longer cut off, the iPhone Remote's
+  address, pairing code, shortcuts and paired devices each get a row, and
+  Reset to Defaults asks for confirmation in a standard alert.
+- The menu is about screens only: the footer has Settings and Quit, and a
+  notice appears only when the keyboard keys are missing a permission.
+- The keyboard keys' diagnostic line ("Received key 0x0C/0x40…") is gone from
+  the interface; it's in the log instead (category `keys`).
+
 ## [2.2.1] - 2026-10-28
 
 ### Changed
@@ -199,7 +212,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.3.0-beta.1...HEAD
+[2.3.0-beta.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.1...v2.3.0-beta.1
 [2.2.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...v2.1.1

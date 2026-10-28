@@ -60,15 +60,10 @@ final class DisplayController: ObservableObject {
     /// Brightness keys are on but macOS hasn't granted Input Monitoring yet
     /// (needed to read Apple keyboards' brightness keys).
     @Published private(set) var inputMonitoringNeeded = false
-    /// What the keyboard keys are doing, shown under Keyboard Keys, e.g.
-    /// "Listening · press a brightness key" or "Brightness Up → DELL U2723QE · 65%".
-    @Published private(set) var keysStatus: String?
     /// Brightness follows Light/Dark mode (see Preferences.brightnessFollowsAppearance).
     @Published private(set) var brightnessFollowsAppearance = Preferences.brightnessFollowsAppearance
     /// The screen whose controls the menu shows (nil: pick a sensible one).
     @Published private(set) var selectedDisplayID: CGDirectDisplayID?
-    /// Whether the Settings section of the menu is expanded.
-    @Published private(set) var settingsExpanded = false
     /// Whether the selected screen's options are shown.
     @Published private(set) var screenOptionsExpanded = false
     /// Reset to Defaults was clicked and awaits confirmation.
@@ -134,8 +129,9 @@ final class DisplayController: ObservableObject {
         keys.onPress = { [weak self] key, fine, id in self?.handle(key, fine: fine, on: id) }
         keys.onSeen = { [weak self] key, code in self?.keySeen(key, code: code) }
         keyboard.onKey = { [weak self] key, isDown in self?.keyboardKey(key, isDown: isDown) }
-        keyboard.onUnknown = { [weak self] page, usage in
-            self?.keysStatus = String(format: "Received key 0x%02X/0x%02X, which Switchboard doesn't use", page, usage)
+        keyboard.onUnknown = { page, usage in
+            let code = String(format: "0x%02X/0x%02X", page, usage)
+            Log.keys.debug("Ignored key \(code, privacy: .public)")
         }
         refresh()
         CGDisplayRegisterReconfigurationCallback({ _, flags, userInfo in
@@ -594,12 +590,6 @@ final class DisplayController: ObservableObject {
         if brightnessKeysNeedPermission != needsAccessibility { brightnessKeysNeedPermission = needsAccessibility }
         if inputMonitoringNeeded != needsInputMonitoring { inputMonitoringNeeded = needsInputMonitoring }
 
-        if !keys.isRunning && !keyboard.isRunning {
-            keysStatus = nil
-        } else if keysStatus == nil {
-            keysStatus = "Listening · press a brightness key"
-        }
-
         let waiting = needsAccessibility || needsInputMonitoring
         if waiting, permissionTimer == nil {
             permissionTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
@@ -657,7 +647,8 @@ final class DisplayController: ObservableObject {
     private func canHandle(_ key: MediaKey, on id: CGDirectDisplayID) -> Bool {
         if key.isBrightness {
             if brightnessTargets(for: id).isEmpty {
-                keysStatus = "\(Self.title(of: key)) received, but no screen can be adjusted yet"
+                let title = Self.title(of: key)
+                Log.keys.debug("\(title, privacy: .public): no screen can be adjusted")
                 return false
             }
             return true
@@ -665,14 +656,15 @@ final class DisplayController: ObservableObject {
         return volumeTarget() != nil
     }
 
-    /// Every media-key press the tap sees, for the status line.
+    /// Every media-key press the tap sees, logged for troubleshooting.
     private func keySeen(_ key: MediaKey?, code: Int) {
         guard let key else {
-            keysStatus = "Received media key \(code), which Switchboard doesn't use"
+            Log.keys.debug("Ignored media key \(code, privacy: .public)")
             return
         }
         if !key.isBrightness && volumeTarget() == nil {
-            keysStatus = "\(Self.title(of: key)) left to macOS (sound isn't on monitor speakers)"
+            let title = Self.title(of: key)
+            Log.keys.debug("\(title, privacy: .public) left to macOS: sound isn't on monitor speakers")
         }
     }
 
@@ -731,7 +723,9 @@ final class DisplayController: ObservableObject {
         }
         hud.show(symbol: level < 0.01 ? "sun.min" : "sun.max.fill", level: level, on: lead.id)
         let names = targets.map(\.name).joined(separator: " + ")
-        keysStatus = "\(Self.title(of: up ? .brightnessUp : .brightnessDown)) → \(names) · \(Int((level * 100).rounded()))%"
+        let title = Self.title(of: up ? .brightnessUp : .brightnessDown)
+        let percent = Int((level * 100).rounded())
+        Log.keys.debug("\(title, privacy: .public) → \(names, privacy: .public) · \(percent)%")
     }
 
     /// The monitor whose speakers are the current sound output, when macOS
@@ -767,7 +761,10 @@ final class DisplayController: ObservableObject {
             : level < 0.34 ? "speaker.wave.1.fill"
             : level < 0.67 ? "speaker.wave.2.fill" : "speaker.wave.3.fill"
         hud.show(symbol: symbol, level: level, on: id)
-        keysStatus = "\(Self.title(of: key)) → \(display.name) · \(Int((level * 100).rounded()))%"
+        let title = Self.title(of: key)
+        let name = display.name
+        let percent = Int((level * 100).rounded())
+        Log.keys.debug("\(title, privacy: .public) → \(name, privacy: .public) · \(percent)%")
     }
 
     // MARK: Lock / sleep automation
@@ -839,10 +836,6 @@ final class DisplayController: ObservableObject {
         selectedDisplayID = id
     }
 
-    func toggleSettings() {
-        settingsExpanded.toggle()
-    }
-
     func toggleScreenOptions() {
         screenOptionsExpanded.toggle()
     }
@@ -854,12 +847,17 @@ final class DisplayController: ObservableObject {
         return Preferences.switchVisible(for: key) == false
     }
 
-    /// "Version 2.0.2", or "Version 2.1.0-beta.1" for a pre-release, as
-    /// stamped by scripts/make-app.sh ("Development build" under `swift run`).
-    var versionLabel: String {
+    /// "2.0.2", or "2.1.0-beta.1" for a pre-release, as stamped by
+    /// scripts/make-app.sh ("Development build" under `swift run`).
+    var versionNumber: String {
         let info = Bundle.main.infoDictionary ?? [:]
         guard let short = info["CFBundleShortVersionString"] as? String else { return "Development build" }
-        return "Version \(info["SwitchboardVersion"] as? String ?? short)"
+        return info["SwitchboardVersion"] as? String ?? short
+    }
+
+    /// "Version 2.0.2", for the menu.
+    var versionLabel: String {
+        versionNumber == "Development build" ? versionNumber : "Version \(versionNumber)"
     }
 
     // MARK: Reset to Defaults
@@ -899,9 +897,8 @@ final class DisplayController: ObservableObject {
         refresh()
     }
 
-    /// Open Privacy & Security → Device Control and Data Access (called
-    /// Accessibility before macOS 27). Tries the current Settings URL first,
-    /// then the older one.
+    /// Open Privacy & Security → Input Monitoring. Tries the current
+    /// Settings URL first, then the older one.
     func openInputMonitoringSettings() {
         let candidates = [
             "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ListenEvent",
@@ -912,6 +909,8 @@ final class DisplayController: ObservableObject {
         }
     }
 
+    /// Open Privacy & Security → Device Control and Data Access (called
+    /// Accessibility before macOS 27).
     func openAccessibilitySettings() {
         let candidates = [
             "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility",
