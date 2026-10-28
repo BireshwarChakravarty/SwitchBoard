@@ -19,9 +19,10 @@ All notable changes to Switchboard are documented here. The format follows
 
 ### Changed
 - Reverted the mirror change from 2.1.1-beta.1. The main monitor's blink came
-  from mismatched refresh rates (see Troubleshooting in the README), not from
-  how the screen is disconnected, and re-mirroring as a separate step added
-  an error to the log on every switch-on.
+  from its refresh-rate setting: it blinked at 120 Hz and not at its native
+  160 Hz (see Troubleshooting in the README). How the screen is disconnected
+  made no difference, and re-mirroring as a separate step added an error to
+  the log on every switch-on.
 
 ## [2.1.1-beta.1] - 2026-10-28
 
