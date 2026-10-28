@@ -6,6 +6,17 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-10-28
+
+### Changed
+- **Add Shortcut** makes one Siri shortcut instead of seven: **Toggle
+  Monitor**, for the screen you choose. Siri answers just "Monitor On" or
+  "Monitor Off". Shortcuts added by earlier versions keep working; delete the
+  ones you don't need in the Shortcuts app.
+
+### Added
+- Power actions in the remote API return `power`, `"On"` or `"Off"`.
+
 ## [3.0.0] - 2026-10-28
 
 A redesign. Everything works as before, and settings carry over.
@@ -232,7 +243,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.3.0...v3.0.0
 [2.3.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.2.0...v2.2.1

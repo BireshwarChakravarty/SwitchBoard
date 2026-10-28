@@ -102,7 +102,7 @@ struct SettingsView: View {
                 switch navigation.pane {
                 case .general: GeneralPane(controller: controller)
                 case .keyboard: KeyboardPane(controller: controller)
-                case .remote: RemotePane(remote: remote)
+                case .remote: RemotePane(remote: remote, controller: controller)
                 case .about: AboutPane(controller: controller)
                 }
             }
@@ -226,6 +226,7 @@ private struct PermissionRow: View {
 
 private struct RemotePane: View {
     @ObservedObject var remote: RemoteControl
+    @ObservedObject var controller: DisplayController
 
     var body: some View {
         Form {
@@ -264,13 +265,17 @@ private struct RemotePane: View {
                         }
                     }
                     LabeledContent {
-                        Button(remote.isMakingShortcuts ? "Making Shortcuts…" : "Add Shortcuts…") {
-                            remote.addShortcuts()
+                        Menu(remote.isMakingShortcuts ? "Making Shortcut…" : "Add Shortcut") {
+                            ForEach(shortcutScreens) { screen in
+                                Button(screen.name) { remote.addShortcut(for: screen.id) }
+                            }
                         }
-                        .disabled(remote.isMakingShortcuts || !remote.isListening)
+                        .fixedSize()
+                        .disabled(remote.isMakingShortcuts || !remote.isListening || shortcutScreens.isEmpty)
                     } label: {
-                        Text("Siri & Shortcuts")
-                        Text(remote.shortcutsStatus ?? "On, Off and Toggle for each screen, plus Screen Brightness.")
+                        Text("Siri Shortcut")
+                        Text(remote.shortcutsStatus
+                             ?? "“Toggle Monitor” switches the screen you choose on or off. Siri answers “Monitor On” or “Monitor Off”.")
                     }
                     LabeledContent {
                         Button("Forget All") { remote.forgetPairedDevices() }
@@ -284,6 +289,13 @@ private struct RemotePane: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    /// Screens with a power switch, other screens before the main display.
+    private var shortcutScreens: [ManagedDisplay] {
+        controller.displays
+            .filter { $0.canToggle && !controller.isSwitchHidden($0.id) }
+            .sorted { !$0.isMain && $1.isMain }
     }
 
     /// A QR code for the iPhone's camera, with the addresses beside it.

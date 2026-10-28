@@ -44,8 +44,8 @@ amber for whatever is on, like a power light.
   keyboards' F1 and F2, with an on-screen indicator. Volume keys control
   monitor speakers, which macOS can't adjust over HDMI or DisplayPort.
 - **iPhone and Siri.** An optional remote on your local network: a Home Screen
-  web app with the same controls, and ready-made Siri shortcuts such as
-  "Portable Display Off" or "Screen Brightness".
+  web app with the same controls, and a ready-made Siri shortcut, "Toggle
+  Monitor", that switches a screen on or off.
 - **Safe by design.** Nothing can get stuck: a disconnected screen comes back
   when Switchboard quits, even after a crash, and the last screen that's on
   can't be switched off.
@@ -155,12 +155,13 @@ alongside Switchboard's.
    shows as a letter, open **Home Screen Icon** at the bottom of the page and
    install the profile instead; it adds the same web app with the icon.
 
-For Siri, click **Add Shortcuts…** in **Settings → iPhone Remote**. Switchboard builds
-"*Screen* On", "*Screen* Off" and "Toggle *Screen*" for each screen with a
-power switch, plus "Screen Brightness", signs them, and opens them in the
-Shortcuts app. Add each one; iCloud syncs them to your iPhone, where they also
-work from Control Center and the Action button. Signing needs the Mac to be
-signed in to iCloud.
+For Siri, choose a screen from **Add Shortcut** in **Settings → iPhone
+Remote**. Switchboard builds one shortcut, **Toggle Monitor**, which switches
+that screen on or off; Siri answers "Monitor On" or "Monitor Off". It's signed
+and opened in the Shortcuts app: click **Add Shortcut**, and iCloud syncs it
+to your iPhone, where it also works from Control Center and the Action
+button. Signing needs the Mac to be signed in to iCloud. Adding it again for
+another screen replaces the one in Shortcuts if you choose **Replace**.
 
 The remote is off until you turn it on, only listens on your local network,
 and only paired devices can use it. **Forget All** unpairs every device. To
@@ -192,7 +193,7 @@ log stream --level debug --predicate 'subsystem == "app.switchboard.Switchboard"
 | A portable monitor's own brightness resets after it's switched off | Switching off cuts its video signal, and some portable monitors reset their brightness when they wake, especially when powered only over USB-C from the Mac. Give it its own power supply, or turn off any power-saving mode in its menu. |
 | A control affects the wrong monitor | Each DDC/CI lookup logs the candidate ports with their EDID match scores. [Open an issue](https://github.com/BireshwarChakravarty/SwitchBoard/issues/new/choose) with those lines. |
 | The iPhone can't reach the remote | Check the iPhone is on the same Wi-Fi and the Mac is awake. Try the IP address shown in Settings, and allow incoming connections for Switchboard if the firewall asks. |
-| *Couldn't make shortcuts* | Sign in to iCloud on the Mac (System Settings → your name) and try again. |
+| *Couldn't make the shortcut* | Sign in to iCloud on the Mac (System Settings → your name) and try again. |
 | The main monitor blinks when a mirroring screen switches off or on | macOS is probably changing the main monitor's refresh rate as the mirror changes, which makes the monitor re-sync. Set the main monitor to its native refresh rate in System Settings → Displays. For example, a 160 Hz monitor mirrored to a 144 Hz portable display blinked at 120 Hz but not at 160 Hz. |
 | A screen stays off | Quit Switchboard and macOS reconnects it. Otherwise run `/Applications/Switchboard.app/Contents/MacOS/Switchboard --reset`, or log out and back in. |
 

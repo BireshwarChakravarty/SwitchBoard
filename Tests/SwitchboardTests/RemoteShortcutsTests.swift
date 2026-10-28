@@ -14,54 +14,47 @@ final class RemoteShortcutsTests: XCTestCase {
         action["WFWorkflowActionParameters"] as? [String: Any] ?? [:]
     }
 
-    func testMakesPowerAndBrightnessShortcuts() {
-        let shortcuts = RemoteShortcuts.make(base: base, key: key,
-                                             switchable: [(name: "ARZOPA", slug: "arzopa")], brightness: true)
-        XCTAssertEqual(shortcuts.map(\.name), ["ARZOPA On", "ARZOPA Off", "Toggle ARZOPA", "Screen Brightness"])
+    func testMakesOneToggleMonitorShortcut() {
+        let shortcut = RemoteShortcuts.toggle(base: base, key: key, screen: (name: "ARZOPA", slug: "arzopa"))
+        XCTAssertEqual(shortcut.name, "Toggle Monitor")
 
-        let off = actions(shortcuts[1].workflow)
-        XCTAssertEqual(off.map { $0["WFWorkflowActionIdentifier"] as? String },
+        let steps = actions(shortcut.workflow)
+        XCTAssertEqual(steps.map { $0["WFWorkflowActionIdentifier"] as? String },
                        ["is.workflow.actions.downloadurl", "is.workflow.actions.getvalueforkey",
                         "is.workflow.actions.showresult"])
-        XCTAssertEqual(parameters(off[0])["WFURL"] as? String, "\(base)/api/screens/arzopa/off?key=\(key)")
-        XCTAssertEqual(parameters(off[0])["WFHTTPMethod"] as? String, "POST")
-        XCTAssertEqual(parameters(off[1])["WFDictionaryKey"] as? String, "message")
+        XCTAssertEqual(parameters(steps[0])["WFURL"] as? String, "\(base)/api/screens/arzopa/toggle?key=\(key)")
+        XCTAssertEqual(parameters(steps[0])["WFHTTPMethod"] as? String, "POST")
+        XCTAssertEqual(parameters(steps[1])["WFDictionaryKey"] as? String, "power")
     }
 
-    func testOutputsAreWiredByUUID() {
-        let workflow = RemoteShortcuts.askingRequest(prompt: "?", urlBefore: "\(base)/x/", urlAfter: "?key=k")
-        let steps = actions(workflow)
-        XCTAssertEqual(steps.map { $0["WFWorkflowActionIdentifier"] as? String },
-                       ["is.workflow.actions.ask", "is.workflow.actions.downloadurl",
-                        "is.workflow.actions.getvalueforkey", "is.workflow.actions.showresult"])
-        let askUUID = parameters(steps[0])["UUID"] as? String
-        let fetchUUID = parameters(steps[1])["UUID"] as? String
-        XCTAssertNotNil(askUUID)
+    /// Siri says "Monitor On" or "Monitor Off": "Monitor " then the reply's
+    /// `power`, read from the URL's reply.
+    func testSaysMonitorAndThePowerState() {
+        let shortcut = RemoteShortcuts.toggle(base: base, key: key, screen: (name: "ARZOPA", slug: "arzopa"))
+        let steps = actions(shortcut.workflow)
+        let fetchUUID = parameters(steps[0])["UUID"] as? String
+        let valueUUID = parameters(steps[1])["UUID"] as? String
+        XCTAssertNotNil(fetchUUID)
 
-        // The URL holds the answer where U+FFFC is.
-        let url = (parameters(steps[1])["WFURL"] as? [String: Any])?["Value"] as? [String: Any]
-        let string = url?["string"] as? String
-        XCTAssertEqual(string, "\(base)/x/\u{FFFC}?key=k")
-        let ranges = url?["attachmentsByRange"] as? [String: [String: Any]]
-        let position = "\(base)/x/".utf16.count
-        XCTAssertEqual(ranges?["{\(position), 1}"]?["OutputUUID"] as? String, askUUID)
-        XCTAssertEqual(ranges?["{\(position), 1}"]?["OutputName"] as? String, "Provided Input")
-
-        // The message is read from the URL's reply.
-        let input = (parameters(steps[2])["WFInput"] as? [String: Any])?["Value"] as? [String: Any]
+        let input = (parameters(steps[1])["WFInput"] as? [String: Any])?["Value"] as? [String: Any]
         XCTAssertEqual(input?["OutputUUID"] as? String, fetchUUID)
         XCTAssertEqual(input?["OutputName"] as? String, "Contents of URL")
+
+        let text = (parameters(steps[2])["Text"] as? [String: Any])?["Value"] as? [String: Any]
+        XCTAssertEqual(text?["string"] as? String, "Monitor \u{FFFC}")
+        let ranges = text?["attachmentsByRange"] as? [String: [String: Any]]
+        XCTAssertEqual(ranges?["{8, 1}"]?["OutputUUID"] as? String, valueUUID)
     }
 
     func testSerializesAsPropertyList() throws {
-        let shortcut = RemoteShortcuts.make(base: base, key: key, switchable: [], brightness: true)[0]
+        let shortcut = RemoteShortcuts.toggle(base: base, key: key, screen: (name: "ARZOPA", slug: "arzopa"))
         let data = try RemoteShortcuts.data(for: shortcut)
         let back = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
-        XCTAssertEqual((back?["WFWorkflowActions"] as? [Any])?.count, 4)
+        XCTAssertEqual((back?["WFWorkflowActions"] as? [Any])?.count, 3)
     }
 
     func testFileNames() {
-        XCTAssertEqual(RemoteShortcuts.fileName(for: "Toggle ARZOPA"), "Toggle ARZOPA.shortcut")
+        XCTAssertEqual(RemoteShortcuts.fileName(for: "Toggle Monitor"), "Toggle Monitor.shortcut")
         XCTAssertEqual(RemoteShortcuts.fileName(for: "A/B: C"), "A-B- C.shortcut")
     }
 
@@ -72,8 +65,7 @@ final class RemoteShortcutsTests: XCTestCase {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
-        let shortcut = RemoteShortcuts.make(base: base, key: key,
-                                            switchable: [(name: "ARZOPA", slug: "arzopa")], brightness: true)[3]
+        let shortcut = RemoteShortcuts.toggle(base: base, key: key, screen: (name: "ARZOPA", slug: "arzopa"))
         let input = folder.appendingPathComponent("in.shortcut")
         try RemoteShortcuts.data(for: shortcut).write(to: input)
         let output = folder.appendingPathComponent("out.shortcut")

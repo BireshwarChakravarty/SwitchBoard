@@ -83,30 +83,27 @@ final class RemoteControl: ObservableObject {
 
     // MARK: Shortcuts
 
-    /// Build, sign and open ready-made shortcuts for this Mac's screens.
-    /// They get their own key (counted as a paired device).
-    func addShortcuts() {
-        guard let controller, !isMakingShortcuts else { return }
-        let switchable = controller.displays
-            .filter { $0.canToggle && !controller.isSwitchHidden($0.id) }
-            .map { (name: $0.name, slug: RemoteScreenMatcher.slug($0.name)) }
-        let brightness = controller.displays.contains { !$0.isBuiltIn && $0.combinedBrightness != nil }
-
+    /// Build, sign and open a "Toggle <screen>" shortcut for Siri. It gets
+    /// its own key (counted as a paired device).
+    func addShortcut(for id: CGDirectDisplayID) {
+        guard let controller, !isMakingShortcuts,
+              let display = controller.displays.first(where: { $0.id == id }) else { return }
         let key = pairing.issueKey()
-        let shortcuts = RemoteShortcuts.make(base: address, key: key, switchable: switchable, brightness: brightness)
-        let files = shortcuts.compactMap { shortcut -> (name: String, data: Data)? in
-            guard let data = try? RemoteShortcuts.data(for: shortcut) else { return nil }
-            return (RemoteShortcuts.fileName(for: shortcut.name), data)
-        }
-        guard !files.isEmpty else {
+        let shortcut = RemoteShortcuts.toggle(
+            base: address, key: key,
+            screen: (name: display.name, slug: RemoteScreenMatcher.slug(display.name))
+        )
+        guard let data = try? RemoteShortcuts.data(for: shortcut) else {
             pairing.revoke(key: key)
-            shortcutsStatus = "No screens to make shortcuts for"
+            shortcutsStatus = "Couldn't make the shortcut"
             return
         }
         savePairing()
         isMakingShortcuts = true
-        shortcutsStatus = "Making \(files.count) shortcuts…"
+        let name = shortcut.name
+        shortcutsStatus = "Making “\(name)”…"
 
+        let files = [(name: RemoteShortcuts.fileName(for: name), data: data)]
         Task.detached {
             let result = Self.writeAndSign(files)
             await MainActor.run { [weak self] in
@@ -114,22 +111,22 @@ final class RemoteControl: ObservableObject {
                 self.isMakingShortcuts = false
                 switch result {
                 case .success(let urls):
-                    Log.app.info("Remote: made \(urls.count) shortcuts")
+                    Log.app.info("Remote: made shortcut \(name, privacy: .public)")
                     self.open(urls)
-                    self.shortcutsStatus = "Opened \(urls.count) shortcuts in Shortcuts. Click Add Shortcut for each; iCloud brings them to your iPhone."
+                    self.shortcutsStatus = "Opened “\(name)” in Shortcuts. Click Add Shortcut; iCloud brings it to your iPhone."
                 case .failure(let failure):
-                    Log.app.error("Remote: shortcuts failed: \(failure.message, privacy: .public)")
+                    Log.app.error("Remote: shortcut failed: \(failure.message, privacy: .public)")
                     self.pairing.revoke(key: key)
                     self.savePairing()
-                    self.shortcutsStatus = "Couldn't make shortcuts: \(failure.message)"
+                    self.shortcutsStatus = "Couldn't make the shortcut: \(failure.message)"
                 }
             }
         }
     }
 
     /// Write each shortcut, sign it into ~/Downloads/Switchboard Shortcuts
-    /// (replacing older ones, which hold an older key), and return the
-    /// signed files.
+    /// (replacing older files there, which hold an older key), and return
+    /// the signed files.
     nonisolated private static func writeAndSign(_ files: [(name: String, data: Data)]) -> Result<[URL], ShortcutSigner.Failure> {
         let manager = FileManager.default
         let downloads = manager.urls(for: .downloadsDirectory, in: .userDomainMask).first
@@ -279,7 +276,7 @@ final class RemoteControl: ObservableObject {
         let target = on ?? !display.isOn
         if target == display.isOn {
             return .json(ActionResult(message: "\(display.name) is already \(target ? "on" : "off")",
-                                      state: state(of: controller)))
+                                      power: target ? "On" : "Off", state: state(of: controller)))
         }
         guard display.canToggle else {
             return .error("\(display.name) can't be switched off", status: 409)
@@ -295,7 +292,7 @@ final class RemoteControl: ObservableObject {
             return .error(problem, status: 409)
         }
         return .json(ActionResult(message: "\(display.name) switched \(target ? "on" : "off")",
-                                  state: state(of: controller)))
+                                  power: target ? "On" : "Off", state: state(of: controller)))
     }
 
     private func set(_ control: RemoteControlKind, of query: String, to value: Int,
@@ -352,7 +349,16 @@ final class RemoteControl: ObservableObject {
 
     private struct ActionResult: Encodable {
         let message: String
+        /// Power actions only: "On" or "Off", what the screen is now. The
+        /// Toggle shortcut says it as "Monitor On" or "Monitor Off".
+        var power: String?
         let state: RemoteState
+
+        init(message: String, power: String? = nil, state: RemoteState) {
+            self.message = message
+            self.power = power
+            self.state = state
+        }
     }
 
     struct RemoteState: Encodable {

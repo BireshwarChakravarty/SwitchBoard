@@ -27,7 +27,7 @@ curl -X POST http://mac-mini.local:8723/api/pair -d '{"code": "482913"}'
 
 The code changes after each successful pairing, and is replaced after five
 wrong attempts. Keys stay valid until **Forget All** or **Reset to Defaults**.
-**Add Shortcuts…** issues its own key. Switchboard stores only SHA-256 hashes
+**Add Shortcut** issues its own key. Switchboard stores only SHA-256 hashes
 of keys.
 
 ## Endpoints
@@ -56,12 +56,15 @@ screen is rejected.
 
 ## Responses
 
-Actions return a human-readable `message`, which Shortcuts shows and Siri
-reads out, and the new state:
+Actions return a human-readable `message`, which Shortcuts can show and
+Siri read out, and the new state. Power actions (`on`, `off`, `toggle`) also
+return `power`, `"On"` or `"Off"`: what the screen is now. The Toggle Monitor
+shortcut says it as "Monitor On" or "Monitor Off".
 
 ```json
 {
   "message": "Portable Display switched off",
+  "power": "Off",
   "state": { "...": "as GET /api/screens" }
 }
 ```

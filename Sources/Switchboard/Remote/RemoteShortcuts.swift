@@ -1,14 +1,14 @@
 import Foundation
 
-/// Builds ready-made Shortcuts for the iPhone Remote: "ARZOPA On",
-/// "ARZOPA Off", "Toggle ARZOPA" for each screen with a power switch, and
-/// "Screen Brightness", which asks for a number.
+/// Builds the ready-made Siri shortcut for the iPhone Remote: "Toggle
+/// Monitor", which switches one screen on or off and says "Monitor On" or
+/// "Monitor Off".
 ///
-/// Each one calls the remote's API with Get Contents of URL (POST) and shows
-/// the reply's `message`, which Siri reads out. macOS and iOS only import
-/// signed shortcut files, so the files are signed on this Mac with Apple's
-/// `shortcuts sign` tool, then opened in the Shortcuts app; iCloud brings
-/// them to the iPhone.
+/// It calls the remote's API with Get Contents of URL (POST) and shows the
+/// reply's `power`, which Siri reads out. macOS and iOS only import signed
+/// shortcut files, so the file is signed on this Mac with Apple's
+/// `shortcuts sign` tool, then opened in the Shortcuts app; iCloud brings it
+/// to the iPhone.
 enum RemoteShortcuts {
     struct Shortcut {
         /// Also the file name, which becomes the shortcut's name on import.
@@ -16,30 +16,15 @@ enum RemoteShortcuts {
         let workflow: [String: Any]
     }
 
-    /// The shortcuts for these screens. `base` is like
-    /// "http://Mac-mini.local:8723".
-    static func make(base: String, key: String, switchable: [(name: String, slug: String)],
-                     brightness: Bool) -> [Shortcut] {
-        var shortcuts: [Shortcut] = []
-        for screen in switchable {
-            for (title, action) in [("\(screen.name) On", "on"),
-                                    ("\(screen.name) Off", "off"),
-                                    ("Toggle \(screen.name)", "toggle")] {
-                let url = "\(base)/api/screens/\(screen.slug)/\(action)?key=\(key)"
-                shortcuts.append(Shortcut(name: title, workflow: request(url: url)))
-            }
-        }
-        if brightness {
-            shortcuts.append(Shortcut(
-                name: "Screen Brightness",
-                workflow: askingRequest(
-                    prompt: "What brightness, from 0 to 100?",
-                    urlBefore: "\(base)/api/screens/all/brightness/",
-                    urlAfter: "?key=\(key)"
-                )
-            ))
-        }
-        return shortcuts
+    static let toggleName = "Toggle Monitor"
+
+    /// "Toggle Monitor" for `screen`. `base` is like "http://Mac-mini.local:8723".
+    static func toggle(base: String, key: String, screen: (name: String, slug: String)) -> Shortcut {
+        let fetch = UUID().uuidString
+        let url = "\(base)/api/screens/\(screen.slug)/toggle?key=\(key)"
+        return Shortcut(name: toggleName, workflow: workflow(actions: [
+            fetchAction(uuid: fetch, url: url)
+        ] + show(key: "power", from: fetch, before: "Monitor ")))
     }
 
     /// A file name for a shortcut name ("/" and ":" aren't allowed).
@@ -55,30 +40,6 @@ enum RemoteShortcuts {
 
     // MARK: Workflows
 
-    /// POST to `url`, then show the reply's message.
-    static func request(url: String) -> [String: Any] {
-        let fetch = UUID().uuidString
-        return workflow(actions: [fetchAction(uuid: fetch, url: url)] + showMessage(from: fetch))
-    }
-
-    /// Ask for a number, POST to `urlBefore` + number + `urlAfter`, then show
-    /// the reply's message.
-    static func askingRequest(prompt: String, urlBefore: String, urlAfter: String) -> [String: Any] {
-        let ask = UUID().uuidString
-        let fetch = UUID().uuidString
-        let askAction: [String: Any] = [
-            "WFWorkflowActionIdentifier": "is.workflow.actions.ask",
-            "WFWorkflowActionParameters": [
-                "UUID": ask,
-                "WFAskActionPrompt": prompt,
-                "WFInputType": "Number",
-                "WFAllowsDecimalNumbers": false
-            ] as [String: Any]
-        ]
-        let url = tokenString(before: urlBefore, output: (ask, "Provided Input"), after: urlAfter)
-        return workflow(actions: [askAction, fetchAction(uuid: fetch, url: url)] + showMessage(from: fetch))
-    }
-
     private static func fetchAction(uuid: String, url: Any) -> [String: Any] {
         [
             "WFWorkflowActionIdentifier": "is.workflow.actions.downloadurl",
@@ -90,15 +51,15 @@ enum RemoteShortcuts {
         ]
     }
 
-    /// Get the "message" from the reply and show it (Siri speaks it).
-    private static func showMessage(from fetch: String) -> [[String: Any]] {
+    /// Get `key` from the reply and show it after `before` (Siri speaks it).
+    private static func show(key: String, from fetch: String, before: String) -> [[String: Any]] {
         let value = UUID().uuidString
         return [
             [
                 "WFWorkflowActionIdentifier": "is.workflow.actions.getvalueforkey",
                 "WFWorkflowActionParameters": [
                     "UUID": value,
-                    "WFDictionaryKey": "message",
+                    "WFDictionaryKey": key,
                     "WFInput": [
                         "Value": output(fetch, "Contents of URL"),
                         "WFSerializationType": "WFTextTokenAttachment"
@@ -108,7 +69,7 @@ enum RemoteShortcuts {
             [
                 "WFWorkflowActionIdentifier": "is.workflow.actions.showresult",
                 "WFWorkflowActionParameters": [
-                    "Text": tokenString(before: "", output: (value, "Dictionary Value"), after: "")
+                    "Text": tokenString(before: before, output: (value, "Dictionary Value"), after: "")
                 ] as [String: Any]
             ]
         ]
