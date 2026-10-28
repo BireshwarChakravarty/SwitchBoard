@@ -59,7 +59,7 @@ Resources/                        Info.plist, app icon, iPhone Home Screen icon 
 | Standby and wake | DDC/CI *Set VCP Feature* `0xD6` (power mode): `0x05` standby, `0x01` on |
 | Brightness, contrast, volume | DDC/CI VCP `0x10`, `0x12` and `0x62`, read back with *Get VCP Feature* |
 | DDC/CI transport | I²C through `IOAVService` (private IOKit symbols on Apple Silicon). Each framebuffer is matched to its DCP AV service through the IORegistry, scored on the EDID's vendor, product, serial and name. |
-| Software disconnect | `CGSConfigureDisplayEnabled` (undocumented), completed `.forAppOnly`. Other screens don't blank, and macOS reconnects the screen when the app exits. |
+| Software disconnect | `CGSConfigureDisplayEnabled` (undocumented), completed `.forAppOnly`. A mirroring screen leaves its mirror set in the same configuration (and rejoins it on reconnect), so macOS doesn't rebuild the mirror around the other screen. Other screens don't blank, and macOS reconnects the screen when the app exits. |
 | Software dimming | Display gamma tables (`CGSetDisplayTransferByTable`), which Quartz restores when the app exits |
 | Resolution | Scaled modes from `CGDisplayCopyAllDisplayModes`, applied with `CGConfigureDisplayWithDisplayMode` |
 | Monitor speakers | Core Audio finds HDMI/DisplayPort output without a volume control; volume is set over DDC/CI |

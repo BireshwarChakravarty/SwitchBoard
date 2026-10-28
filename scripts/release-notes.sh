@@ -20,19 +20,28 @@ if [ -z "${NOTES//[[:space:]]/}" ]; then
     exit 1
 fi
 
+REPO="https://github.com/BireshwarChakravarty/SwitchBoard"
+if [[ "$VERSION" == *-* ]]; then
+    # A pre-release isn't "latest": link to this release's own download.
+    DOWNLOAD="$REPO/releases/download/v$VERSION/Switchboard.zip"
+    printf '%s\n\n' "**Pre-release** for testing. The latest stable release stays the default download."
+else
+    DOWNLOAD="$REPO/releases/latest/download/Switchboard.zip"
+fi
+
 printf '%s\n' "$NOTES"
-cat <<'INSTALL'
+cat <<INSTALL
 
 ---
 
 **Install or update:** download **Switchboard.zip** below, unzip it and move
 **Switchboard.app** to Applications, then run
-`xattr -dr com.apple.quarantine /Applications/Switchboard.app` (the app is
+\`xattr -dr com.apple.quarantine /Applications/Switchboard.app\` (the app is
 ad-hoc signed, not notarized). Or in Terminal:
 
-```bash
-pkill -x Switchboard; rm -rf /Applications/Switchboard.app && curl -L -o ~/Downloads/Switchboard.zip https://github.com/BireshwarChakravarty/SwitchBoard/releases/latest/download/Switchboard.zip && unzip -o ~/Downloads/Switchboard.zip -d /Applications && xattr -dr com.apple.quarantine /Applications/Switchboard.app && open /Applications/Switchboard.app
-```
+\`\`\`bash
+pkill -x Switchboard; rm -rf /Applications/Switchboard.app && curl -L -o ~/Downloads/Switchboard.zip $DOWNLOAD && unzip -o ~/Downloads/Switchboard.zip -d /Applications && xattr -dr com.apple.quarantine /Applications/Switchboard.app && open /Applications/Switchboard.app
+\`\`\`
 
 Settings and permissions carry over. See the
 [README](https://github.com/BireshwarChakravarty/SwitchBoard#readme) for

@@ -14,6 +14,11 @@ import CoreGraphics
 ///   macOS save and reload the whole display setup, which blanks every screen.
 /// - It can't get stuck: macOS reconnects the screen itself when the app quits
 ///   or crashes.
+///
+/// A screen that mirrors another is taken out of its mirror set in the same
+/// configuration that disconnects it, and put back in the one that
+/// reconnects it. Otherwise macOS rebuilds the mirror set around the other
+/// screen, which briefly blanks it.
 enum SoftwareDisconnect {
     /// How long a change lasts.
     enum Scope {
@@ -44,31 +49,82 @@ enum SoftwareDisconnect {
         return nil
     }()
 
+    /// The screen each disconnected screen mirrored, to mirror again when it's
+    /// reconnected. Only touched from the main thread. Not persisted: an
+    /// app-only disconnect, mirroring included, is undone by macOS when the
+    /// app exits.
+    nonisolated(unsafe) private static var mirrorSources: [CGDirectDisplayID: CGDirectDisplayID] = [:]
+
     /// Enable (reconnect) or disable (disconnect) a display. Returns true on success.
     @discardableResult
     static func setEnabled(_ enabled: Bool, displayID: CGDirectDisplayID, scope: Scope = .app) -> Bool {
         guard let configure = configureEnabled else { return false }
 
+        if !enabled {
+            let source = CGDisplayMirrorsDisplay(displayID)
+            if source != kCGNullDirectDisplay {
+                // Leave the mirror set and switch off in one step.
+                let done = apply(scope: scope, "unmirror and disconnect \(displayID)") { config in
+                    CGConfigureDisplayMirrorOfDisplay(config, displayID, kCGNullDirectDisplay) == .success
+                        && configure(config, displayID, false) == 0
+                }
+                if done {
+                    mirrorSources[displayID] = source
+                    return true
+                }
+                Log.display.notice("Display \(displayID): disconnecting without unmirroring first")
+            }
+            return apply(scope: scope, "disconnect \(displayID)") { configure($0, displayID, false) == 0 }
+        }
+
+        if let source = mirrorSources[displayID], CGDisplayIsOnline(source) != 0 {
+            // Switch on and rejoin the mirror set in one step.
+            let done = apply(scope: scope, "reconnect \(displayID) as a mirror of \(source)") { config in
+                configure(config, displayID, true) == 0
+                    && CGConfigureDisplayMirrorOfDisplay(config, displayID, source) == .success
+            }
+            if done {
+                mirrorSources[displayID] = nil
+                return true
+            }
+            Log.display.notice("Display \(displayID): reconnecting, then mirroring separately")
+            guard apply(scope: scope, "reconnect \(displayID)", { configure($0, displayID, true) == 0 }) else {
+                return false
+            }
+            mirrorSources[displayID] = nil
+            apply(scope: scope, "mirror \(displayID) of \(source)") {
+                CGConfigureDisplayMirrorOfDisplay($0, displayID, source) == .success
+            }
+            return true
+        }
+        mirrorSources[displayID] = nil
+        return apply(scope: scope, "reconnect \(displayID)") { configure($0, displayID, true) == 0 }
+    }
+
+    /// Run `steps` in one display configuration and complete it. Returns
+    /// false (and cancels) if a step or the configuration fails.
+    @discardableResult
+    private static func apply(scope: Scope, _ description: String,
+                              _ steps: (CGDisplayConfigRef) -> Bool) -> Bool {
         var config: CGDisplayConfigRef?
         let begun = CGBeginDisplayConfiguration(&config)
         guard begun == .success, let config else {
             Log.display.error("CGBeginDisplayConfiguration failed: \(begun.rawValue)")
             return false
         }
-
-        let result = configure(config, displayID, enabled)
-        guard result == 0 else {
-            Log.display.error("CGSConfigureDisplayEnabled(\(displayID), \(enabled)) failed: \(result)")
+        guard steps(config) else {
+            Log.display.error("Couldn't \(description, privacy: .public): a step was rejected")
             CGCancelDisplayConfiguration(config)
             return false
         }
-
+        let start = Date()
         let completed = CGCompleteDisplayConfiguration(config, scope.option)
+        let milliseconds = Int(Date().timeIntervalSince(start) * 1000)
         guard completed == .success else {
-            Log.display.error("CGCompleteDisplayConfiguration failed: \(completed.rawValue)")
+            Log.display.error("Couldn't \(description, privacy: .public): \(completed.rawValue)")
             return false
         }
-        Log.display.info("Display \(displayID) \(enabled ? "connected" : "disconnected", privacy: .public)")
+        Log.display.info("Done: \(description, privacy: .public) (\(milliseconds) ms)")
         return true
     }
 }

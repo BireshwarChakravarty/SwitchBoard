@@ -6,6 +6,14 @@ All notable changes to Switchboard are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.1.1-beta.1] - 2026-10-28
+
+### Fixed
+- Switching off a screen that mirrors another, such as a portable display
+  mirroring the main monitor, briefly blanked the main monitor while macOS
+  rebuilt the mirror. The screen now leaves the mirror in the same step that
+  switches it off, and rejoins it when switched back on.
+
 ## [2.1.0] - 2026-10-17
 
 ### Fixed
@@ -142,7 +150,8 @@ First public release.
 - Liquid Glass interface modelled on Control Center.
 - Unit tests and continuous integration on macOS 26.
 
-[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.1-beta.1...HEAD
+[2.1.1-beta.1]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.1.0...v2.1.1-beta.1
 [2.1.0]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.3...v2.1.0
 [2.0.3]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/BireshwarChakravarty/SwitchBoard/compare/v2.0.1...v2.0.2
